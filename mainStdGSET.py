@@ -350,12 +350,14 @@ class Turtlebot:
 
         # ROTATIONAL ERRORS (Source: Research overview)
         # Doesn't need to be rotated
-        yaw_error = self.yaw_traj - psi_sensor
+        yaw_error = self.yaw_traj - psi_sensor + math.atan2(y_error_relative, x_error_relative)
         yaw_error = math.atan2(math.sin(yaw_error), math.cos(yaw_error)) # optimizes angle
 
         # applying the constant for proportional error (Source: Research overview)
-        linear_speed = self.k_x * x_error_relative
-        angular_speed = self.k_yaw * yaw_error
+        linear_speed_x = self.vx_traj + self.k_x * x_error_relative
+        linear_speed_y = self.vy_traj + self.k_y * y_error_relative
+        linear_speed = math.hypot(linear_speed_x, linear_speed_y)
+        angular_speed = self.angular_speed_traj + self.k_yaw * yaw_error
         
         # Step S.0 and S.1: Saturation: Saturate self.linear_speed and self.angular_speed
         # If needed you can use the max(x,y) and min(x,y) to compute the min and max between two values.
