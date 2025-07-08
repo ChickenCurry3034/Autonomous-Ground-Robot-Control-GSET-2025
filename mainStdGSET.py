@@ -332,7 +332,30 @@ class Turtlebot:
         
         '''Controller'''        	
         # WRITE CONTROLLER HERE
-        
+
+        # P - Proportional Control
+
+        # +x = forward, +y = left (right-hand-rule)
+        # global uses the FIELD as the reference frame
+        # relative uses the ROBOT as the reference frame
+        # error = desired - actual
+
+        # GLOBAL ERRORS (Source: Research overview)
+        x_error_global = self.x_traj - x_sensor
+        y_error_global = self.y_traj - y_sensor
+
+        # RELATIVE ERRORS (Source: https://pages.github.berkeley.edu/EECS-106/fa21-site/assets/discussions/D1_Rotations_soln.pdf - UC Berkeley Section 3.3)
+        x_error_relative = x_error_global * math.cos(psi_sensor) - y_error_global * math.sin(psi_sensor)
+        y_error_relative = x_error_global * math.sin(psi_sensor) + y_error_global * math.cos(psi_sensor)
+
+        # ROTATIONAL ERRORS (Source: Research overview)
+        # Doesn't need to be rotated
+        yaw_error = self.yaw_traj - psi_sensor
+        yaw_error = math.atan2(math.sin(yaw_error), math.cos(yaw_error)) # optimizes angle
+
+        # applying the constant for proportional error (Source: Research overview)
+        linear_speed = self.k_x * x_error_relative
+        angular_speed = self.k_yaw * yaw_error
         
         # Step S.0 and S.1: Saturation: Saturate self.linear_speed and self.angular_speed
         # If needed you can use the max(x,y) and min(x,y) to compute the min and max between two values.
