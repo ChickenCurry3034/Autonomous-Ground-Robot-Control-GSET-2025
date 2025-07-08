@@ -332,7 +332,37 @@ class Turtlebot:
         
         '''Controller'''        	
         # WRITE CONTROLLER HERE
-        
+
+        # Desired trajectory attributes - TUNABLE
+        x_d = 1
+        y_d = 0
+        psi_d = 0
+
+        # Proportional gain values - TUNABLE
+        k_x = 0
+        k_y = 0
+        k_psi = 0
+
+        # Error calculation
+        x_error = x_d - x_sensor
+        y_error = y_d - y_sensor
+        psi_error = psi_d - psi_sensor
+        psi_error = math.atan2(math.sin(psi_error), math.cos(psi_error))
+
+        # Velocity components
+        vx = k_x * x_error
+        vy = k_y * y_error
+
+        # Feedback linear velocity
+        v_fb = math.hypot(vx, vy)
+        # v_fb = vx for x controller test only
+        # v_fb = vy for y controller test only
+        # v_fb = 0 for yaw controler test only
+
+        omg_fb = k_psi * psi_error # gain times control again
+
+        self.linear_speed = v_fb
+        self.angular_speed = omg_fb
         
         # Step S.0 and S.1: Saturation: Saturate self.linear_speed and self.angular_speed
         # If needed you can use the max(x,y) and min(x,y) to compute the min and max between two values.
