@@ -128,6 +128,12 @@ class Turtlebot:
         self.own_imu_subscriber = None
         self.imu_angular_velocity = (0.0, 0.0, 0.0)       # Initializing angular velocity as a tuple (wx, wy, wz)
 
+        self.current_time = 0
+        self.dt = 0
+        self.integral_error_x = 0
+        self.integral_error_y = 0
+        self.integral_error_yaw = 0
+
     def subscribe_own_twist(self):
         # Subscribe to the TwistStamped topic if not already subscribed
         if not self.is_own_twist_subscribed:
@@ -162,16 +168,17 @@ class Turtlebot:
         if self.start_time is None:
             self.start_time = rospy.get_time()
 
-        current_time = rospy.get_time() - self.start_time
+        self.dt = rospy.get_time() - self.current_time
+        self.current_time = rospy.get_time() - self.start_time
         if self.debug_flag is False:
-            log_data = f"{current_time:.4f}\t{self.linear_speed:.4f}\t{self.angular_speed:.4f}\t" \
+            log_data = f"{self.current_time:.4f}\t{self.linear_speed:.4f}\t{self.angular_speed:.4f}\t" \
                        f"{self.position[0]:.4f}\t{self.position[1]:.4f}\t" \
                        f"{self.yaw:.4f}\t" \
                        f"{self.linear_velocity[0]:.4f}\t{self.linear_velocity[1]:.4f}\t" \
                        f"{math.sqrt(math.pow(self.linear_velocity[0], 2) + math.pow(self.linear_velocity[1], 2)):.4f}\t" \
                        f"{self.imu_angular_velocity[2]:.4f}\n"
         else:   
-            log_data = f"{current_time:.4f}\t{self.linear_speed:.4f}\t{self.angular_speed:.4f}\t" \
+            log_data = f"{self.current_time:.4f}\t{self.linear_speed:.4f}\t{self.angular_speed:.4f}\t" \
                        f"{self.position[0]:.4f}\t{self.position[1]:.4f}\t{self.position[2]:.4f}\t" \
                        f"{self.orientation[0]:.4f}\t{self.orientation[1]:.4f}\t{self.orientation[2]:.4f}\t{self.orientation[3]:.4f}\t" \
                        f"{self.roll:.4f}\t{self.pitch:.4f}\t{self.yaw:.4f}\t" \
@@ -337,8 +344,6 @@ class Turtlebot:
         '''Controller'''        	
         # WRITE CONTROLLER HERE
 
-        # P - Proportional Control
-
         # +x = forward, +y = left (right-hand-rule)
         # global uses the FIELD as the reference frame
         # relative uses the ROBOT as the reference frame
@@ -357,11 +362,16 @@ class Turtlebot:
         yaw_error = self.yaw_traj - psi_sensor + math.atan2(y_error_relative, x_error_relative)
         yaw_error = math.atan2(math.sin(yaw_error), math.cos(yaw_error)) # optimizes angle
 
+        # solving for integral errors (Source: https://www.cds.caltech.edu/~murray/courses/cds101/fa04/caltech/am04_ch8-3nov04.pdf - Caltech)
+        self.integral_error_x += self.dt * x_error_relative
+        self.integral_error_y += self.dt * y_error_relative
+        self.integral_error_yaw += self.dt * yaw_error_relative
+
         # applying the constant for proportional error (Source: Research overview)
-        linear_speed_x = self.vx_traj + self.p_x * x_error_relative
-        linear_speed_y = self.vy_traj + self.p_y * y_error_relative
+        linear_speed_x = self.vx_traj + self.p_x * x_error_relative + self.i_x * integral_error_x
+        linear_speed_y = self.vy_traj + self.p_y * y_error_relative + self.i_y * integral_error_y
         self.linear_speed = math.hypot(linear_speed_x, linear_speed_y)
-        self.angular_speed = self.angular_speed_traj + self.p_yaw * yaw_error
+        self.angular_speed = self.angular_speed_traj + self.p_yaw * yaw_error + self.i_yaw * integral_error_yaw
         
         # Step S.0 and S.1: Saturation: Saturate self.linear_speed and self.angular_speed
         # If needed you can use the max(x,y) and min(x,y) to compute the min and max between two values.
