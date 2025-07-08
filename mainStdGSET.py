@@ -345,8 +345,8 @@ class Turtlebot:
         y_error_global = self.y_traj - y_sensor
 
         # RELATIVE ERRORS (Source: https://pages.github.berkeley.edu/EECS-106/fa21-site/assets/discussions/D1_Rotations_soln.pdf - UC Berkeley Section 3.3)
-        x_error_relative = x_error_global * math.cos(psi_sensor) - y_error_global * math.sin(psi_sensor)
-        y_error_relative = x_error_global * math.sin(psi_sensor) + y_error_global * math.cos(psi_sensor)
+        x_error_relative = x_error_global * math.cos(psi_sensor) + y_error_global * math.sin(psi_sensor)
+        y_error_relative = -x_error_global * math.sin(psi_sensor) + y_error_global * math.cos(psi_sensor)
 
         # ROTATIONAL ERRORS (Source: Research overview)
         # Doesn't need to be rotated
