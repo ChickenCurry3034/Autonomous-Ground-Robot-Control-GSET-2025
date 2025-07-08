@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+#Silicone Tires
+
 """───────────────────────────────────────────────────────────────────────
                      ┬─┐┌─┐┌┐ ┌─┐┌┬┐  ┬  ┌─┐┌┐                           
                      ├┬┘│ │├┴┐│ │ │   │  ├─┤├┴┐                          
@@ -33,6 +34,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler # Im
 class Turtlebot:
     def __init__(self):
         """ -------- Start of Controller Gains --------- """
+
         self.vx_traj = 0.0
         self.vy_traj = 0.0
         self.omg_traj = 0.0
@@ -453,9 +455,37 @@ class Turtlebot:
             self.exit_requested = True      # Set exit flag to True
             self.write_log_data_to_file(log_file_name)
             self.cleanup()
-     
+    
+    def run_p_controller(self, read_file_name=None, log_file_name=None):
+        self.read_from_file(self.read_file_name)
+        self.subscribe_own_twist()
+        self.subscribe_own_imu()
+        self.subscribe_vicon()
+
+        prev_time = rospy.Time.now()
+
+        try:
+            while not rospy.is_shotdown() and not self.exit_requested:
+                now = rospy.Time.now()
+                dt = (now-prev_time).to_sec()
+                if dt >= 0.1:
+                    prev_time = now
+                    self.update_traj()
+                    self.controller()
+                    self.publish_speeds()
+                    self.log_to_buffer()
+
+                    rospy.sleep(0.005)
+
+        except KeyboardInterrupt:
+            print("Keyboard input has been received!")
+        finally:
+            self.exit_requested = True
+            self.write_log_data_to_file(self.log_file_name)
+            self.cleanup()
 if __name__ == '__main__':
     obj = Turtlebot()   # Create an instance of the Turtlebot class
+#    obj.run_p_controller() --> We might need to remove, because when plugging into Turtlebot, might automatically implement the class.
 
         # Uncomment only one line of code to execute:   
     
@@ -469,4 +499,4 @@ if __name__ == '__main__':
     #obj.control_traj("log_SecXX_LastName_FirstName.txt", "log_ctrl_SecXX_LastName_FirstName.txt")
     
     # TASK5
-    #obj.control_traj("trajectoryRU_SOL.txt", "log_ctrl_RU_SecXX_LastName_FirstName.txt")               # Execute the control_traj method to feed back control the turtlebot        trajectory    
+    #obj.control_traj("trajectoryRU_SOL.txt", "log_ctrl_RU_SecXX_LastName_FirstName.txt")
