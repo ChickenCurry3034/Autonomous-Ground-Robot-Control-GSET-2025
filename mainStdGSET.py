@@ -47,6 +47,10 @@ class Turtlebot:
         self.i_x   = 1.0  # control integral gain
         self.i_y   = 1.0  # control integral gain
         self.i_yaw = 0.05 # control integral gain
+
+        self.d_x   = 1.0  # derivative integral gain
+        self.d_y   = 1.0  # derivative integral gain
+        self.d_yaw = 0.05 # derivative integral gain
         
         self.k_vx  = 0.0
         self.k_vy  = 0.0
@@ -133,6 +137,10 @@ class Turtlebot:
         self.integral_error_x = 0
         self.integral_error_y = 0
         self.integral_error_yaw = 0
+
+        self.x_error_relative = 0
+        self.y_error_relative = 0
+        self.yaw_error = 0
 
     def subscribe_own_twist(self):
         # Subscribe to the TwistStamped topic if not already subscribed
@@ -354,24 +362,34 @@ class Turtlebot:
         y_error_global = self.y_traj - y_sensor
 
         # RELATIVE ERRORS (Source: https://pages.github.berkeley.edu/EECS-106/fa21-site/assets/discussions/D1_Rotations_soln.pdf - UC Berkeley Section 3.3)
-        x_error_relative = x_error_global * math.cos(psi_sensor) + y_error_global * math.sin(psi_sensor)
-        y_error_relative = -x_error_global * math.sin(psi_sensor) + y_error_global * math.cos(psi_sensor)
+        x_error_relative_new = x_error_global * math.cos(psi_sensor) + y_error_global * math.sin(psi_sensor)
+        y_error_relative_new = -x_error_global * math.sin(psi_sensor) + y_error_global * math.cos(psi_sensor)
 
         # ROTATIONAL ERRORS (Source: Research overview)
         # Doesn't need to be rotated
-        yaw_error = self.yaw_traj - psi_sensor + math.atan2(y_error_relative, x_error_relative)
-        yaw_error = math.atan2(math.sin(yaw_error), math.cos(yaw_error)) # optimizes angle
+        yaw_error_new = self.yaw_traj - psi_sensor + math.atan2(y_error_relative, x_error_relative)
+        yaw_error_new = math.atan2(math.sin(yaw_error), math.cos(yaw_error)) # optimizes angle
 
         # solving for integral errors (Source: https://www.cds.caltech.edu/~murray/courses/cds101/fa04/caltech/am04_ch8-3nov04.pdf - Caltech)
         self.integral_error_x += self.dt * x_error_relative
         self.integral_error_y += self.dt * y_error_relative
         self.integral_error_yaw += self.dt * yaw_error_relative
 
+        # solving for derivative errors (Source: https://www.cds.caltech.edu/~murray/courses/cds101/fa04/caltech/am04_ch8-3nov04.pdf - Caltech)
+        derivative_x_error = (x_error_relative_new - self.x_error_relative) / self.dt
+        derivative_y_error = (y_error_relative_new - self.y_error_relative) / self.dt
+        derivative_yaw_error = (yaw_error_new - self.yaw_error) / self.dt
+
+        # updating new x, y, and yaw errors to global variables
+        self.x_error_relative = x_error_relative_new
+        self.y_error_relative = y_error_relative_new
+        self.yaw_error_relative = yaw_error_relative_new
+
         # applying the constant for proportional error (Source: Research overview)
-        linear_speed_x = self.vx_traj + self.p_x * x_error_relative + self.i_x * integral_error_x
-        linear_speed_y = self.vy_traj + self.p_y * y_error_relative + self.i_y * integral_error_y
+        linear_speed_x = self.vx_traj + self.p_x * x_error_relative + self.i_x * self.integral_error_x + self.d_x * derivative_x_error
+        linear_speed_y = self.vy_traj + self.p_y * y_error_relative + self.i_y * self.integral_error_y + self.d_y * derivative_y_error
         self.linear_speed = math.hypot(linear_speed_x, linear_speed_y)
-        self.angular_speed = self.angular_speed_traj + self.p_yaw * yaw_error + self.i_yaw * integral_error_yaw
+        self.angular_speed = self.angular_speed_traj + self.p_yaw * yaw_error + self.i_yaw * integral_error_yaw + self.d_yaw * derivative_yaw_error
         
         # Step S.0 and S.1: Saturation: Saturate self.linear_speed and self.angular_speed
         # If needed you can use the max(x,y) and min(x,y) to compute the min and max between two values.
