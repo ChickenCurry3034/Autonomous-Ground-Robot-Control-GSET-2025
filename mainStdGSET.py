@@ -40,9 +40,13 @@ class Turtlebot:
         self.x_r = 0.025  # Define your geometric parameters
         self.y_r = 0.025  # Define your geometric parameters
         
-        self.k_x   = 1.0  # control proportional gain
-        self.k_y   = 1.0  # control proportional gain
-        self.k_yaw = 0.05 # control proportional gain
+        self.p_x   = 1.0  # control proportional gain
+        self.p_y   = 1.0  # control proportional gain
+        self.p_yaw = 0.05 # control proportional gain
+
+        self.i_x   = 1.0  # control integral gain
+        self.i_y   = 1.0  # control integral gain
+        self.i_yaw = 0.05 # control integral gain
         
         self.k_vx  = 0.0
         self.k_vy  = 0.0
@@ -354,10 +358,10 @@ class Turtlebot:
         yaw_error = math.atan2(math.sin(yaw_error), math.cos(yaw_error)) # optimizes angle
 
         # applying the constant for proportional error (Source: Research overview)
-        linear_speed_x = self.vx_traj + self.k_x * x_error_relative
-        linear_speed_y = self.vy_traj + self.k_y * y_error_relative
+        linear_speed_x = self.vx_traj + self.p_x * x_error_relative
+        linear_speed_y = self.vy_traj + self.p_y * y_error_relative
         self.linear_speed = math.hypot(linear_speed_x, linear_speed_y)
-        self.angular_speed = self.angular_speed_traj + self.k_yaw * yaw_error
+        self.angular_speed = self.angular_speed_traj + self.p_yaw * yaw_error
         
         # Step S.0 and S.1: Saturation: Saturate self.linear_speed and self.angular_speed
         # If needed you can use the max(x,y) and min(x,y) to compute the min and max between two values.
