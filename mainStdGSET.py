@@ -128,6 +128,10 @@ class Turtlebot:
         self.y_error_integral = 0
         self.psi_error_integral = 0
 
+        self.x_error = 0
+        self.y_error = 0
+        self.psi_error = 0
+
     def subscribe_own_twist(self):
         # Subscribe to the TwistStamped topic if not already subscribed
         if not self.is_own_twist_subscribed:
@@ -352,20 +356,35 @@ class Turtlebot:
         k_y_i = 0
         k_psi_i = 0
 
+        # Derivative gain values - TUNABLE
+        k_x_d = 0
+        k_y_d = 0
+        k_psi_d = 0
+
         # Error calculation
-        x_error = x_d - x_sensor
-        y_error = y_d - y_sensor
-        psi_error = psi_d - psi_sensor
-        psi_error = math.atan2(math.sin(psi_error), math.cos(psi_error))
+        x_error_new = x_d - x_sensor
+        y_error_new = y_d - y_sensor
+        psi_error_new = psi_d - psi_sensor
+        psi_error_new = math.atan2(math.sin(self.psi_error_new), math.cos(self.psi_error_new))
 
         # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
-        self.x_error_integral += x_error * 0.01
-        self.y_error_integral += y_error * 0.01
-        self.psi_error_integral += psi_error * 0.01
+        self.x_error_integral += x_error_new * 0.01
+        self.y_error_integral += y_error_new * 0.01
+        self.psi_error_integral += psi_error_new * 0.01
+
+        # Derivative calculation
+        x_error_derivative = (x_error_new - self.x_error) / 0.01
+        y_error_derivative = (y_error_new - self.y_error) / 0.01
+        psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
+
+        # Updating new errors
+        self.x_error = x_error_new
+        self.y_error = y_error_new
+        self.psi_error = psi_error_new
 
         # Velocity components
-        vx = k_x_p * x_error + k_x_i * self.x_error_integral
-        vy = k_y_p * y_error + k_y_i * self.y_error_integral
+        vx = k_x_p * self.x_error + k_x_i * self.x_error_integral + k_x_d * x_error_derivative
+        vy = k_y_p * self.y_error + k_y_i * self.y_error_integral + k_y_d * y_error_derivative
 
         # Feedback linear velocity
         v_fb = math.hypot(vx, vy)
@@ -373,7 +392,7 @@ class Turtlebot:
         # v_fb = vy for y controller test only
         # v_fb = 0 for yaw controler test only
 
-        omg_fb = k_psi_p * psi_error + k_psi_i * self.psi_error_integral # gain times control again
+        omg_fb = k_psi_p * self.psi_error + k_psi_i * self.psi_error_integral + k_psi_d * psi_error_derivative # gain times control again
 
         self.linear_speed = v_fb
         self.angular_speed = omg_fb
