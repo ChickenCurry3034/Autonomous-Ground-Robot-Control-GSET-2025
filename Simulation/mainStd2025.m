@@ -40,9 +40,9 @@ Time = [0:obj.TS:10]';
 
 % Create x and y reference position column vectors, of the same size as the time vector.
 % This is an example of a step function, a good start.You can get creative!
-xd = double(Time>1);            % x position
-yd = zeros(size(Time));         % y position
-yawd = double(Time>1);
+xd = 1;            % x position
+yd = 2;         % y position
+yawd = pi/3;
 
 % Or you can use a fucntion, just like this!
 % [xr, yr] = trajectory(Time);    % Uncomment me to use!
@@ -105,16 +105,10 @@ writeTrajectory(Time, xd, yd, yawd)
 global x_e_integral;
 global y_e_integral;
 global yaw_e_integral;
-x_e_integral = 0;
-y_e_integral = 0;
-yaw_e_integral = 0;
 
 global x_error;
 global y_error;
 global yaw_error;
-x_error = 0;
-y_error = 0;
-yaw_error = 0;
 
 % dt = 0.01s because frequency is 100 Hz
 %% Function to be coded:
@@ -130,16 +124,16 @@ global yaw_error;
 % Position control
 % Step 1: Start implementing a simple control in x direction only and simulate.
 
-KPx = 5;
-KPy = 5;
-KPyaw = pi; %pi/4.75;
+KPx = 0;
+KPy = 0;
+KPyaw = 0; %pi/4.75;
 
 KIx = 1;
-KIy = 1000;
+KIy = 0;
 KIyaw = pi/10;
 
-KDx = 9; %10;
-KDy = 9; %10;
+KDx = 0; %10;
+KDy = 0; %10;
 KDyaw = 0; %pi;
 
 x_e=x_d-x;
