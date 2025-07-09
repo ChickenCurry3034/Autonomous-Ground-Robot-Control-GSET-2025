@@ -339,9 +339,9 @@ class Turtlebot:
         psi_d = 0
 
         # Proportional gain values - TUNABLE
-        k_x = 0
-        k_y = 0
-        k_psi = 0
+        k_x_p = 0
+        k_y_p = 0
+        k_psi_p = 0
 
         # Error calculation
         x_error = x_d - x_sensor
@@ -350,8 +350,8 @@ class Turtlebot:
         psi_error = math.atan2(math.sin(psi_error), math.cos(psi_error))
 
         # Velocity components
-        vx = k_x * x_error
-        vy = k_y * y_error
+        vx = k_x_p * x_error
+        vy = k_y_p * y_error
 
         # Feedback linear velocity
         v_fb = math.hypot(vx, vy)
@@ -359,7 +359,7 @@ class Turtlebot:
         # v_fb = vy for y controller test only
         # v_fb = 0 for yaw controler test only
 
-        omg_fb = k_psi * psi_error # gain times control again
+        omg_fb = k_psi_p * psi_error # gain times control again
 
         self.linear_speed = v_fb
         self.angular_speed = omg_fb
