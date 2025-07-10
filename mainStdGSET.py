@@ -396,7 +396,7 @@ class Turtlebot:
         self.linear_speed = max(-self.linear_speed_max, min(self.linear_speed, self.linear_speed_max))
         self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
 
-        if((self.linear_speed == -self.linear_speed_max) or (self.linear_speed == self.linear_speed_max)):
+        if((self.linear_speed == -self.linear_speed_max) or (self.linear_speed == self.linear_speed_max) or (self.angular_speed == -self.angular_speed_max) or (self.angular_speed == self.angular_speed_max)):
             vx = k_x_p * x_error
             vy = k_y_p * y_error
             self.x_error_integral.put(0)
