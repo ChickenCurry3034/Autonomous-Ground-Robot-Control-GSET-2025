@@ -126,9 +126,9 @@ class Turtlebot:
         self.imu_angular_velocity = (0.0, 0.0, 0.0)       # Initializing angular velocity as a tuple (wx, wy, wz)
 
         self.taps = 25 # number of samples for the integral
-        self.x_error_integral = queue.Queue(maxsize=self.taps)
-        self.y_error_integral = queue.Queue(maxsize=self.taps)
-        self.psi_error_integral = queue.Queue(maxsize=self.taps)
+        self.x_error_integral = queue.Queue(maxsize=self.taps-1)
+        self.y_error_integral = queue.Queue(maxsize=self.taps-1)
+        self.psi_error_integral = queue.Queue(maxsize=self.taps-1)
 
         self.x_error = 0
         self.y_error = 0
@@ -414,7 +414,29 @@ class Turtlebot:
             self.angular_speed = 0  
         
         self.linear_speed = max(-self.linear_speed_max, min(self.linear_speed, self.linear_speed_max))
-        self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))       
+        self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
+
+        if((self.linear_speed == -self.linear_speed_max) or (self.linear_speed == self.linear_speed_max)):
+            vx = k_x_p * self.x_error + k_x_d * x_error_derivative
+            vy = k_y_p * self.y_error + k_y_d * y_error_derivative
+            self.x_error_integral.put(0)
+            self.y_error_integral.put(0)
+            self.psi_error_integral.put(0)
+            v_fb = math.hypot(vx, vy)
+            omg_fb = k_psi_p * self.psi_error + k_psi_d * psi_error_derivative
+            self.linear_speed = v_fb
+            self.angular_speed = omg_fb
+            if self.current_idx >= len(self.log_lines):
+                self.linear_speed = 0
+                self.angular_speed = 0
+            self.linear_speed = max(-self.linear_speed_max, min(self.linear_speed, self.linear_speed_max))
+            self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
+        else:
+            # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
+            self.x_error_integral.put(x_error * 0.01)
+            self.y_error_integral.put(y_error * 0.01)
+            self.psi_error_integral.put(psi_error * 0.01)
+
 
     def cleanup(self):      
         # Shutdown ROS node
