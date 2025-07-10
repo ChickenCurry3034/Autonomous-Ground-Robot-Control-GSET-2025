@@ -21,6 +21,7 @@ import sys                      # Importing the sys module to access system-spec
 import math                     # Importing the math module for math computations
 import time                     # Importing the time module for time-related functions
 import rospy                    # Importing rospy, the client library for ROS in Python
+import queue
 #import threading                # Importing the threading module for multi-threading capabilities
 from datetime import datetime   # Importing the Twist message type from geometry_msgs
 #from sshkeyboard import listen_keyboard                                     # Importing the function listen_keyboard from the sshkeyboard module
@@ -124,9 +125,10 @@ class Turtlebot:
         self.own_imu_subscriber = None
         self.imu_angular_velocity = (0.0, 0.0, 0.0)       # Initializing angular velocity as a tuple (wx, wy, wz)
 
-        self.x_error_integral = 0
-        self.y_error_integral = 0
-        self.psi_error_integral = 0
+        self.taps = 25 # number of samples for the integral
+        self.x_error_integral = queue.Queue(maxsize=self.taps)
+        self.y_error_integral = queue.Queue(maxsize=self.taps)
+        self.psi_error_integral = queue.Queue(maxsize=self.taps)
 
         self.x_error = 0
         self.y_error = 0
@@ -368,23 +370,27 @@ class Turtlebot:
         psi_error_new = math.atan2(math.sin(self.psi_error_new), math.cos(self.psi_error_new))
 
         # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
-        self.x_error_integral += x_error_new * 0.01
-        self.y_error_integral += y_error_new * 0.01
-        self.psi_error_integral += psi_error_new * 0.01
+        self.x_error_integral.put(x_error_new * 0.01)
+        self.y_error_integral.put(y_error_new * 0.01)
+        self.psi_error_integral.put(psi_error_new * 0.01)
 
-        # Derivative calculation
+        x_error_integral_sum = sum(self.x_error_integral.queue)
+        y_error_integral_sum = sum(self.y_error_integral.queue)
+        psi_error_integral_sum = sum(self.psi_error_integral.queue)
+
+        # derivative calculations
         x_error_derivative = (x_error_new - self.x_error) / 0.01
         y_error_derivative = (y_error_new - self.y_error) / 0.01
         psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
 
-        # Updating new errors
+        # updating global errors
         self.x_error = x_error_new
         self.y_error = y_error_new
         self.psi_error = psi_error_new
 
         # Velocity components
-        vx = k_x_p * self.x_error + k_x_i * self.x_error_integral + k_x_d * x_error_derivative
-        vy = k_y_p * self.y_error + k_y_i * self.y_error_integral + k_y_d * y_error_derivative
+        vx = k_x_p * self.x_error + k_x_i * x_error_integral_sum + k_x_d * x_error_derivative
+        vy = k_y_p * self.y_error + k_y_i * y_error_integral_sum + k_y_d * y_error_derivative
 
         # Feedback linear velocity
         v_fb = math.hypot(vx, vy)
@@ -392,7 +398,7 @@ class Turtlebot:
         # v_fb = vy for y controller test only
         # v_fb = 0 for yaw controler test only
 
-        omg_fb = k_psi_p * self.psi_error + k_psi_i * self.psi_error_integral + k_psi_d * psi_error_derivative # gain times control again
+        omg_fb = k_psi_p * self.psi_error + k_psi_i * psi_error_integral_sum + k_psi_d * psi_error_derivative # gain times control again
 
         self.linear_speed = v_fb
         self.angular_speed = omg_fb
