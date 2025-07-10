@@ -130,9 +130,9 @@ class Turtlebot:
         self.psi_error_integral = 0
 
         self.taps = 25 # number of samples for the integral
-        self.x_error_integral = queue.Queue(maxsize=self.taps)
-        self.y_error_integral = queue.Queue(maxsize=self.taps)
-        self.psi_error_integral = queue.Queue(maxsize=self.taps)
+        self.x_error_integral = queue.Queue(maxsize=self.taps-1)
+        self.y_error_integral = queue.Queue(maxsize=self.taps-1)
+        self.psi_error_integral = queue.Queue(maxsize=self.taps-1)
 
     def subscribe_own_twist(self):
         # Subscribe to the TwistStamped topic if not already subscribed
@@ -364,14 +364,9 @@ class Turtlebot:
         psi_error = psi_d - psi_sensor
         psi_error = math.atan2(math.sin(psi_error), math.cos(psi_error))
 
-        # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
-        self.x_error_integral.put(x_error * 0.01)
-        self.y_error_integral.put(y_error * 0.01)
-        self.psi_error_integral.put(psi_error * 0.01)
-
-        x_error_integral_sum = sum(self.x_error_integral.queue)
-        y_error_integral_sum = sum(self.y_error_integral.queue)
-        psi_error_integral_sum = sum(self.psi_error_integral.queue)
+        x_error_integral_sum = sum(self.x_error_integral.queue) + x_error * 0.1
+        y_error_integral_sum = sum(self.y_error_integral.queue) + y_error * 0.1
+        psi_error_integral_sum = sum(self.psi_error_integral.queue) + psi_error * 0.1
 
         # Velocity components
         vx = k_x_p * x_error + k_x_i * x_error_integral_sum
@@ -399,7 +394,29 @@ class Turtlebot:
             self.angular_speed = 0  
         
         self.linear_speed = max(-self.linear_speed_max, min(self.linear_speed, self.linear_speed_max))
-        self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))       
+        self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
+
+        if((self.linear_speed == -self.linear_speed_max) or (self.linear_speed == self.linear_speed_max)):
+            vx = k_x_p * x_error
+            vy = k_y_p * y_error
+            self.x_error_integral.put(0)
+            self.y_error_integral.put(0)
+            self.psi_error_integral.put(0)
+            v_fb = math.hypot(vx, vy)
+            omg_fb = k_psi_p * psi_error
+            self.linear_speed = v_fb
+            self.angular_speed = omg_fb
+            if self.current_idx >= len(self.log_lines):
+                self.linear_speed = 0
+                self.angular_speed = 0
+            self.linear_speed = max(-self.linear_speed_max, min(self.linear_speed, self.linear_speed_max))
+            self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
+        else:
+            # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
+            self.x_error_integral.put(x_error * 0.01)
+            self.y_error_integral.put(y_error * 0.01)
+            self.psi_error_integral.put(psi_error * 0.01)
+
 
     def cleanup(self):      
         # Shutdown ROS node
