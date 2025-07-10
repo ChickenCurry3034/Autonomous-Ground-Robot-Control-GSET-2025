@@ -10,7 +10,7 @@
 % Description: In this class, we will apply the concepts studied to an
 % example. In the first stage, we will work in a simulated environment.
 % Later, we will work on an actual experiment in the lab.
-% 
+%
 % The following files need to be all in the same folder, for this mainStd.m script to run:
 %                 mainStd.m
 %                 Turtlebot.p
@@ -19,74 +19,92 @@
 %                 way_points_mid.txt
 %% Clear workspace and command window
 close all;
-clear;      
+clear;
 clc;
 % Before going further, scan the whole script to get an idea of what we'll do!
 %% Section 0: Data Preparation
 obj = Turtlebot();   % Create a Turtlebot object! I named it "obj" because
 % I am boring, you can call it something else :). Do not worry about it, it will just simulate the robot dynamics.
-
 % Set the initial position and orientation. This is the location where you want to place the robor. For now, set them to zero!
 x0 = 0;     %-2;    %<-- use later!
 y0 = 0;     %-0.8750;   %<-- use later!
-psi0 = 0.5;   %pi/2;    %<-- use later!
+psi0 = 0;   %pi/2;    %<-- use later!
 obj.set_states(x0, y0, psi0)
-
 % Set the sampling time TS we'll use in this simulation, 0.01 will do!
 obj.set_TS(0.01);
+
+%% Defining global integral and derivative helper variables and saturation limits
+global x_e_integral;
+global y_e_integral;
+global yaw_e_integral;
+global x_error;
+global y_error;
+global yaw_error;
+global linear_speed_sat;
+global angular_speed_sat;
+
+% Initialize global variables
+x_e_integral = 0;
+y_e_integral = 0;
+yaw_e_integral = 0;
+x_error = 0;
+y_error = 0;
+yaw_error = 0;
+
+% Initialize global saturation limits from the Turtlebot object
+linear_speed_sat = obj.linear_speed_sat;
+angular_speed_sat = obj.angular_speed_sat;
+
+% dt = 0.01s because frequency is 100 Hz
 %% Section 1: Reference trajectory generation
 % Create a time column vector, starting from 0s, up to 10s, in TS steps.
 Time = [0:obj.TS:10]';
-
 % Create x and y reference position column vectors, of the same size as the time vector.
 % This is an example of a step function, a good start.You can get creative!
-xd = 1;            % x position
-yd = 2;         % y position
-yawd = pi/3;
+xd = 1 * ones(size(Time));            % x position
+yd = 0.5 * ones(size(Time));         % y position
+yawd = (pi/3) * ones(size(Time));
 
 % Or you can use a fucntion, just like this!
 % [xr, yr] = trajectory(Time);    % Uncomment me to use!
-
 writeTrajectory(Time, xd, yd, yawd); % This function needs to be used to create a
 % trajectory file for the real robot. Not need to use it now, but does not hurt either.
 traj = importdata('myTrajectory.txt').data;
 Time = traj(:,1);
 xd   = traj(:,4);
 yd   = traj(:,5);
-yawd = traj(:,6)
-xd(1001:end)=2;
+yawd = traj(:,6);
+xd(1001:end)=1; % This line modifies the trajectory after import.
 
 % We can also plot the trajectory to see what it looks like! Is it a step?
-ax = plotTrajectory(Time, xd, yd, yawd);
-title(ax, 'Reference Trajectory')
+ax_traj = plotTrajectory(Time, xd, yd, yawd);
+title(ax_traj(1), 'Reference Trajectory Yaw'); % Title for the first subplot (yaw)
+title(ax_traj(2), 'Reference Trajectory X');   % Title for the second subplot (x)
+title(ax_traj(3), 'Reference Trajectory Y');   % Title for the third subplot (y)
+
 %% Section 2: Simulation Loop
 % We are going to store importan variables to ve able to plot them later in
 % a data matrix: [ u1, u2, x, y, psi, vx, vy, v, wz]
 data = zeros(length(Time), 9);
-
 % This is the main simulation loop.
 stopSimulation = false; % simuation flag
 i = 0;                  % loop index
-while not(stopSimulation)   
+while not(stopSimulation)
     i = i + 1;
     % Reference at each time step:
     x_d= xd(i);
     y_d= yd(i);
     yaw_d = yawd(i);
-
     % Get the information from the sensors!
     [x_sensor, y_sensor, psi_sensor, vx_sensor, vy_sensor, omega_sensor] = obj.get_perfectSensor();
     % Yes, this is a "perfect" sensor that gives us true values. In real
     % life, these values are noisy. We can add some white noise to the
     % measuremnts!
     %     psi_sensor     =   psi_sensor    +  (-0.5 + rand(1,1))*10^-2;
-
     % Control: This is the importat part where we actually have to work.
     % Let's implement the control algorithm in a separate funtion.
     [u] = controller(x_sensor, y_sensor, psi_sensor, x_d, y_d, yaw_d);
-
     data(i,:) = obj.get_log(); %[ u1, u2, x, y, psi, vx, vy, v, wz]
-
     % Bot simulation
     obj.move(u);            % Do not modify
     % Stop Simulation
@@ -95,181 +113,180 @@ while not(stopSimulation)
     end
 end
 %% Section 3: Plot some results!
-ax = plotTrajectory(Time, data(:,3), data(:,4), data(:,5));
-title(ax, 'Robot Trajectory')
-plotOutputs(obj, Time, data, xd, yd, yawd)
+ax_robot_traj = plotTrajectory(Time, data(:,3), data(:,4), data(:,5));
+title(ax_robot_traj(1), 'Robot Trajectory Yaw'); % Title for the first subplot (yaw)
+title(ax_robot_traj(2), 'Robot Trajectory X');   % Title for the second subplot (x)
+title(ax_robot_traj(3), 'Robot Trajectory Y');   % Title for the third subplot (y)
 
+plotOutputs(obj, Time, data, xd, yd, yawd)
 writeTrajectory(Time, xd, yd, yawd)
 
-%% Defining global integral and derivative helper variables
-global x_e_integral;
-global y_e_integral;
-global yaw_e_integral;
-
-global x_error;
-global y_error;
-global yaw_error;
-
-% dt = 0.01s because frequency is 100 Hz
 %% Function to be coded:
 function [u] = controller(x, y, psi, x_d, y_d, yaw_d)
-
 global x_e_integral;
 global y_e_integral;
 global yaw_e_integral;
 global x_error;
 global y_error;
 global yaw_error;
+global linear_speed_sat; % Declare global saturation limits
+global angular_speed_sat; % Declare global saturation limits
 
 % Position control
 % Step 1: Start implementing a simple control in x direction only and simulate.
+KPx = 1;
+KPy = 1;
+KPyaw = pi/4; %pi/4.75;
 
-KPx = 0;
-KPy = 0;
-KPyaw = 0; %pi/4.75;
-
-KIx = 1;
+KIx = 0;
 KIy = 0;
-KIyaw = pi/10;
+KIyaw = 0;
 
 KDx = 0; %10;
 KDy = 0; %10;
 KDyaw = 0; %pi;
 
+dt = 0.01; % Sampling time, equivalent to obj.TS
+
 x_e=x_d-x;
 y_e=y_d-y;
 
-x_e_integral = x_e_integral + 0.01 * x_e;
-y_e_integral = y_e_integral + 0.01 * y_e;
+% Update integral terms
+x_e_integral = x_e_integral + dt * x_e;
+y_e_integral = y_e_integral + dt * y_e;
 
-x_e_derivative = (x_e - x_error) / 0.01;
-y_e_derivative = (y_e - y_error) / 0.01;
+% Calculate derivative terms
+x_e_derivative = (x_e - x_error) / dt;
+y_e_derivative = (y_e - y_error) / dt;
 
+% Store current errors for next derivative calculation
 x_error = x_e;
 y_error = y_e;
 
+% Calculate linear velocities in x and y
 v_x=x_e*KPx + x_e_integral*KIx + x_e_derivative*KDx;
 v_y=y_e*KPy + y_e_integral*KIy + y_e_derivative*KDy;
 
 % Attitude control
 yaw = atan2(v_y,v_x); % desired yaw
+% TDL: FINISH COMPLEX CONTROLS FOR THIS ACCOUNTING FOR YAW FROM SPEED AND
+% DESIRED YAW
 v = sqrt(v_y^2 + v_x^2); % Complete this yourself
 
 % Step 4: Avoid "u" turns by keeping the |error| less that pi rad
-yaw_e = yaw_d-psi; % Yaw error: Complete this yourself
-yaw_e = atan2(sin(yaw_e), cos(yaw_e));
-yaw_e_integral = yaw_e_integral + 0.01 * yaw_e;
-yaw_e_derivative = (yaw_e - yaw_error) / 0.01;
+yaw_e = yaw-psi; % Yaw error: Complete this yourself
+yaw_e = atan2(sin(yaw_e), cos(yaw_e)); % Normalize angle to [-pi, pi]
+
+% Update integral term for yaw
+yaw_e_integral = yaw_e_integral + dt * yaw_e;
+
+% Calculate derivative term for yaw
+yaw_e_derivative = (yaw_e - yaw_error) / dt;
+
+% Store current yaw error for next derivative calculation
 yaw_error = yaw_e;
-omg = KPyaw*yaw_e + KIyaw*yaw_e_integral + yaw_e_derivative*KDyaw; 
+
+omg = KPyaw*yaw_e + KIyaw*yaw_e_integral + yaw_e_derivative*KDyaw;
 
 % Step 5: Avoid actuation saturation keeping control signals bounded
 % -u1sat < u1 < +u1sat
 % -u2sat < u1 < +u2sat
-linear_speed_sat = v; % Constant value
-angular_speed_sat = omg; % Constant value
-...
-% Complete the rest yourself
-...
-% Output Control Signal   
+
+% Apply saturation limits
+v = max(-linear_speed_sat, min(v, linear_speed_sat));
+omg = max(-angular_speed_sat, min(omg, angular_speed_sat));
+
+% Output Control Signal
 [u] = [v, omg];
 end
-%% Make some plots:
-function [xr, yr, yawr] = trajectory(Time)
-%TRAJECTORY Build your trajectory
-%   This is an example
-    xr = Time>1;
-    yr = zeros(size(Time));
-    yawr = Time>1;
-end
 
-function ax = plotTrajectory(Time, xr, yr, yawr)
+%% Make some plots:
+function ax_handles = plotTrajectory(Time, xr, yr, yawr)
 %PLOTRAJECTORY Plot some outputs!
     fig = figure;
-    ax = axes(fig);
-    hold(ax, "on"), grid(ax, "on")
-    xlabel(ax, 'Time (s)')
-    ylabel(ax, 'y (m)')
-    plot(ax, Time, yr, 'k')
-    subplot(3,1,2,ax)
+    % Subplot for Yaw
+    ax1 = subplot(3,1,1);
+    hold(ax1, "on"), grid(ax1, "on")
+    xlabel(ax1, 'Time (s)')
+    ylabel(ax1, 'yaw (rad)')
+    plot(ax1, Time, yawr, 'k')
 
-    ax = axes(fig);
-    hold(ax, "on"), grid(ax, "on")
-    xlabel(ax, 'Time (s)')
-    ylabel(ax, 'x (m)')
-    plot(ax, Time, xr, 'k')
-    subplot(3,1,1,ax)
+    % Subplot for X position
+    ax2 = subplot(3,1,2);
+    hold(ax2, "on"), grid(ax2, "on")
+    xlabel(ax2, 'Time (s)')
+    ylabel(ax2, 'x (m)')
+    plot(ax2, Time, xr, 'k')
 
-    ax = axes(fig);
-    hold(ax, "on" ), grid(ax, "on")
-    xlabel(ax, 'TIme (s)')
-    ylabel(ax, 'yaw (rad)')
-    plot(ax, Time, yawr, 'k')
-    subplot(3,1,3,ax)
+    % Subplot for Y position
+    ax3 = subplot(3,1,3);
+    hold(ax3, "on"), grid(ax3, "on")
+    xlabel(ax3, 'Time (s)')
+    ylabel(ax3, 'y (m)')
+    plot(ax3, Time, yr, 'k')
+
+    ax_handles = [ax1, ax2, ax3]; % Return handles to the axes for external titling
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)
 %PLOTUTPUTS Plot some outputs!
     fig = figure;
-    ax = axes(fig);
-    hold(ax, "on"), grid(ax, "on")
-    xlabel(ax, 'Time (s)')
-    ylabel(ax, 'ex (m)')
-    plot(ax, Time, xr-data(:,3), 'k')
-    subplot(4,1,1,ax)
-    
-    ax = axes(fig);
-    hold(ax, "on"), grid(ax, "on")
-    xlabel(ax, 'Time (s)')
-    ylabel(ax, 'ey (m)')
-    plot(ax, Time, yr-data(:,4), 'k')
-    subplot(4,1,2,ax)
-    
-    ax = axes(fig);
-    hold(ax, "on"), grid(ax, "on")
-    xlabel(ax, 'Time (s)')
-    ylabel(ax, 'v (m/s)')
-    plot(ax, Time, data(:,1), 'k')
-    plot(ax, Time, data(:,8), '--r')
-    yline(obj.linear_speed_sat,'--g')
-    yline(-obj.linear_speed_sat,'--g')
-    legend(ax, 'cmd','real','sat')
-    subplot(4,1,3,ax)
-    
-    ax = axes(fig);
-    hold(ax, "on"), grid(ax, "on")
-    xlabel(ax, 'Time (s)')
-    ylabel(ax, 'wz (rad/s)')
-    plot(ax, Time, data(:,2), 'k')
-    plot(ax, Time, data(:,9), '--r')
-    yline(obj.angular_speed_sat,'--g')
-    yline(-obj.angular_speed_sat,'--g')
-    legend(ax,'cmd','real','sat')
-    subplot(4,1,4,ax)
+
+    % Subplot for X error
+    ax1 = subplot(4,1,1);
+    hold(ax1, "on"), grid(ax1, "on")
+    xlabel(ax1, 'Time (s)')
+    ylabel(ax1, 'ex (m)')
+    plot(ax1, Time, xr-data(:,3), 'k')
+
+    % Subplot for Y error
+    ax2 = subplot(4,1,2);
+    hold(ax2, "on"), grid(ax2, "on")
+    xlabel(ax2, 'Time (s)')
+    ylabel(ax2, 'ey (m)')
+    plot(ax2, Time, yr-data(:,4), 'k')
+
+    % Subplot for Linear Velocity
+    ax3 = subplot(4,1,3);
+    hold(ax3, "on"), grid(ax3, "on")
+    xlabel(ax3, 'Time (s)')
+    ylabel(ax3, 'v (m/s)')
+    plot(ax3, Time, data(:,1), 'k') % Command linear speed
+    plot(ax3, Time, data(:,8), '--r') % Real linear speed
+    yline(ax3, obj.linear_speed_sat,'--g', 'Saturation Limit')
+    yline(ax3, -obj.linear_speed_sat,'--g')
+    legend(ax3, 'cmd','real','sat', 'Location', 'best')
+
+    % Subplot for Angular Velocity
+    ax4 = subplot(4,1,4);
+    hold(ax4, "on"), grid(ax4, "on")
+    xlabel(ax4, 'Time (s)')
+    ylabel(ax4, 'wz (rad/s)')
+    plot(ax4, Time, data(:,2), 'k') % Command angular speed
+    plot(ax4, Time, data(:,9), '--r') % Real angular speed
+    yline(ax4, obj.angular_speed_sat,'--g', 'Saturation Limit')
+    yline(ax4, -obj.angular_speed_sat,'--g')
+    legend(ax4,'cmd','real','sat', 'Location', 'best')
 end
+
 %% Write files
 function writeTrajectory(Time, xr, yr, yawr)
 %WRITETRAJECTORY This file formats your trajectroy corrctly for the robot
-
 % Sample data to write
 saveData = zeros(length(Time),10);
 saveData(:,1) = Time;
 saveData(:,4) = xr;
 saveData(:,5) = yr;
 saveData(:,6) = yawr;
-
 % Open a text file for writing
 fid = fopen('myTrajectory.txt', 'w');
-
 % Check if the file was successfully opened
 if fid == -1
     error('Could not open the file for writing.');
 end
-
 % Write header
 header = 'T (s)\tLin\tAng\tX\tY\tyaw\tdx\tdy\tv\twz\n';
 fprintf(fid, header);
-
 % Write data to the text file
 for i = 1:length(Time)
     fprintf(fid, '%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n', saveData(i,:));
