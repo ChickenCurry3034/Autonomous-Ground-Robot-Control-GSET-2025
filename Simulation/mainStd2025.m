@@ -34,22 +34,24 @@ obj.set_states(x0, y0, psi0)
 obj.set_TS(0.01);
 
 %% Defining global integral and derivative helper variables and saturation limits
-global x_e_integral;
-global y_e_integral;
-global yaw_e_integral;
 global x_error;
 global y_error;
 global yaw_error;
 global linear_speed_sat;
 global angular_speed_sat;
+global net_count;
+global sample_queue_x;
+global sample_queue_y;
+global sample_queue_yaw;
 
 % Initialize global variables
-x_e_integral = 0;
-y_e_integral = 0;
-yaw_e_integral = 0;
 x_error = 0;
 y_error = 0;
 yaw_error = 0;
+net_count = 0;
+sample_queue_x = {};
+sample_queue_y = {};
+sample_queue_yaw = {};
 
 % Initialize global saturation limits from the Turtlebot object
 linear_speed_sat = obj.linear_speed_sat;
@@ -123,24 +125,25 @@ writeTrajectory(Time, xd, yd, yawd)
 
 %% Function to be coded:
 function [u] = controller(x, y, psi, x_d, y_d, yaw_d)
-global x_e_integral;
-global y_e_integral;
-global yaw_e_integral;
 global x_error;
 global y_error;
 global yaw_error;
 global linear_speed_sat; % Declare global saturation limits
 global angular_speed_sat; % Declare global saturation limits
+global net_count; % number of samples tracked
+global sample_queue_x;
+global sample_queue_y;
+global sample_queue_yaw;
 
 % Position control
 % Step 1: Start implementing a simple control in x direction only and simulate.
-KPx = 1;
-KPy = 1;
-KPyaw = pi/4; %pi/4.75;
+KPx = 1.5;
+KPy = 1.5;
+KPyaw = pi/3; %pi/4.75;
 
-KIx = 0;
-KIy = 0;
-KIyaw = 0;
+KIx = 1;
+KIy = 1;
+KIyaw = pi/4;
 
 KDx = 0; %10;
 KDy = 0; %10;
@@ -151,9 +154,21 @@ dt = 0.01; % Sampling time, equivalent to obj.TS
 x_e=x_d-x;
 y_e=y_d-y;
 
+max_samples = 25; % TUNABLE
+% Updating queue
+sample_queue_x{end+1} = x_e;
+sample_queue_y{end+1} = y_e;
+net_count = net_count + 1;
+if net_count > max_samples
+    sample_queue_x(1) = [];
+    sample_queue_y(1) = [];
+end
+
 % Update integral terms
-x_e_integral = x_e_integral + dt * x_e;
-y_e_integral = y_e_integral + dt * y_e;
+numeric_x_samples = cell2mat(sample_queue_x);
+x_e_integral = sum(numeric_x_samples) * dt;
+numeric_y_samples = cell2mat(sample_queue_y);
+y_e_integral = sum(numeric_y_samples) * dt;
 
 % Calculate derivative terms
 x_e_derivative = (x_e - x_error) / dt;
@@ -172,13 +187,33 @@ yaw = atan2(v_y,v_x); % desired yaw
 % TDL: FINISH COMPLEX CONTROLS FOR THIS ACCOUNTING FOR YAW FROM SPEED AND
 % DESIRED YAW
 v = sqrt(v_y^2 + v_x^2); % Complete this yourself
+v = max(-linear_speed_sat, min(v, linear_speed_sat));
+% Don't update integral if the speed is at saturation limit
+if v==-linear_speed_sat | v==linear_speed_sat
+    sample_queue_x{end} = 0;
+    sample_queue_y{end} = 0;
+    v_x=x_e*KPx + x_e_derivative*KDx;
+    v_y=y_e*KPy + y_e_derivative*KDy;
+    yaw = atan2(v_y,v_x);
+    v = sqrt(v_y^2 + v_x^2); % Complete this yourself
+    v = max(-linear_speed_sat, min(v, linear_speed_sat));
+end
+if v < 0.01 % TUNABLE VALUE/THRESHOLD FOR FINAL VELOCITY
+    yaw = yaw_d; % default to final angle at end of path
+end
 
 % Step 4: Avoid "u" turns by keeping the |error| less that pi rad
 yaw_e = yaw-psi; % Yaw error: Complete this yourself
 yaw_e = atan2(sin(yaw_e), cos(yaw_e)); % Normalize angle to [-pi, pi]
 
 % Update integral term for yaw
-yaw_e_integral = yaw_e_integral + dt * yaw_e;
+% Updating queue
+sample_queue_yaw{end+1} = yaw_e;
+if net_count > max_samples
+    sample_queue_yaw(1) = [];
+end
+numeric_yaw_samples = cell2mat(sample_queue_yaw);
+yaw_e_integral = sum(numeric_yaw_samples) * dt;
 
 % Calculate derivative term for yaw
 yaw_e_derivative = (yaw_e - yaw_error) / dt;
@@ -187,14 +222,16 @@ yaw_e_derivative = (yaw_e - yaw_error) / dt;
 yaw_error = yaw_e;
 
 omg = KPyaw*yaw_e + KIyaw*yaw_e_integral + yaw_e_derivative*KDyaw;
+omg = max(-angular_speed_sat, min(omg, angular_speed_sat));
+if omg==-angular_speed_sat | omg==angular_speed_sat
+    sample_queue_yaw{end} = 0;
+    omg=x_e*KPx + x_e_derivative*KDx;
+    omg = max(-angular_speed_sat, min(omg, angular_speed_sat));
+end
 
 % Step 5: Avoid actuation saturation keeping control signals bounded
 % -u1sat < u1 < +u1sat
 % -u2sat < u1 < +u2sat
-
-% Apply saturation limits
-v = max(-linear_speed_sat, min(v, linear_speed_sat));
-omg = max(-angular_speed_sat, min(omg, angular_speed_sat));
 
 % Output Control Signal
 [u] = [v, omg];
