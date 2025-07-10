@@ -433,9 +433,9 @@ class Turtlebot:
             self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
         else:
             # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
-            self.x_error_integral.put(x_error * 0.01)
-            self.y_error_integral.put(y_error * 0.01)
-            self.psi_error_integral.put(psi_error * 0.01)
+            self.x_error_integral.put(self.x_error * 0.01)
+            self.y_error_integral.put(self.y_error * 0.01)
+            self.psi_error_integral.put(self.psi_error * 0.01)
 
 
     def cleanup(self):      
