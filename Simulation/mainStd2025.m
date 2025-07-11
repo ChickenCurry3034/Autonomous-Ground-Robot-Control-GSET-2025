@@ -237,32 +237,38 @@ end
 [u] = [v, omg];
 end
 
-%% Make some plots:
-function ax_handles = plotTrajectory(Time, xr, yr, yawr)
+function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
 %PLOTRAJECTORY Plot some outputs!
     fig = figure;
-    % Subplot for Yaw
-    ax1 = subplot(3,1,1);
-    hold(ax1, "on"), grid(ax1, "on")
-    xlabel(ax1, 'Time (s)')
-    ylabel(ax1, 'yaw (rad)')
-    plot(ax1, Time, yawr, 'k')
 
-    % Subplot for X position
-    ax2 = subplot(3,1,2);
-    hold(ax2, "on"), grid(ax2, "on")
-    xlabel(ax2, 'Time (s)')
-    ylabel(ax2, 'x (m)')
-    plot(ax2, Time, xr, 'k')
+    % yaw plot
+    ax(1) = subplot(3,1,1);
+    hold(ax(1), "on"), grid(ax(1), "on")
+    xlabel(ax(1), 'Time (s)')
+    ylabel(ax(1), 'Yaw (rad)')
+    plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
+    plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
+    legend(ax(1), 'Location', 'best')
 
-    % Subplot for Y position
-    ax3 = subplot(3,1,3);
-    hold(ax3, "on"), grid(ax3, "on")
-    xlabel(ax3, 'Time (s)')
-    ylabel(ax3, 'y (m)')
-    plot(ax3, Time, yr, 'k')
+    % x plot
+    ax(2) = subplot(3,1,2);
+    hold(ax(2), "on"), grid(ax(2), "on")
+    xlabel(ax(2), 'Time (s)')
+    ylabel(ax(2), 'X Position (m)')
+    plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
+    plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
+    legend(ax(2), 'Location', 'best')
 
-    ax_handles = [ax1, ax2, ax3]; % Return handles to the axes for external titling
+    % y plot
+    ax(3) = subplot(3,1,3);
+    hold(ax(3), "on"), grid(ax(3), "on")
+    xlabel(ax(3), 'Time (s)')
+    ylabel(ax(3), 'Y Position (m)')
+    plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
+    plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
+    legend(ax(3), 'Location', 'best')
+
+    sgtitle('**Robot Trajectory**')
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)
