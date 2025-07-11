@@ -79,7 +79,7 @@ yawd = traj(:,6);
 xd(1001:end)=1; % This line modifies the trajectory after import.
 
 % We can also plot the trajectory to see what it looks like! Is it a step?
-ax_traj = plotTrajectory(Time, xd, yd, yawd);
+ax_traj = plotTrajectory(Time, xd, yd, yawd, xd, yd, yawd);
 title(ax_traj(1), 'Reference Trajectory Yaw'); % Title for the first subplot (yaw)
 title(ax_traj(2), 'Reference Trajectory X');   % Title for the second subplot (x)
 title(ax_traj(3), 'Reference Trajectory Y');   % Title for the third subplot (y)
@@ -115,7 +115,7 @@ while not(stopSimulation)
     end
 end
 %% Section 3: Plot some results!
-ax_robot_traj = plotTrajectory(Time, data(:,3), data(:,4), data(:,5));
+ax_robot_traj = plotTrajectory(Time, data(:,3), data(:,4), data(:,5), xd, yd, yawd);
 title(ax_robot_traj(1), 'Robot Trajectory Yaw'); % Title for the first subplot (yaw)
 title(ax_robot_traj(2), 'Robot Trajectory X');   % Title for the second subplot (x)
 title(ax_robot_traj(3), 'Robot Trajectory Y');   % Title for the third subplot (y)
@@ -268,7 +268,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
 
-    sgtitle('**Robot Trajectory**')
+    sgtitle('Robot Trajectory')
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)
