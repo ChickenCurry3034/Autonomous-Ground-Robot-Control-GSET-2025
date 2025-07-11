@@ -361,12 +361,9 @@ class Turtlebot:
         # Error calculation
         x_error = x_d - x_sensor
         y_error = y_d - y_sensor
-        psi_error = psi_d - psi_sensor
-        psi_error = math.atan2(math.sin(psi_error), math.cos(psi_error))
 
-        x_error_integral_sum = sum(self.x_error_integral.queue) + x_error * 0.1
-        y_error_integral_sum = sum(self.y_error_integral.queue) + y_error * 0.1
-        psi_error_integral_sum = sum(self.psi_error_integral.queue) + psi_error * 0.1
+        x_error_integral_sum = sum(self.x_error_integral.queue) + x_error * 0.01
+        y_error_integral_sum = sum(self.y_error_integral.queue) + y_error * 0.01
 
         # Velocity components
         vx = k_x_p * x_error + k_x_i * x_error_integral_sum
@@ -377,6 +374,17 @@ class Turtlebot:
         # v_fb = vx for x controller test only
         # v_fb = vy for y controller test only
         # v_fb = 0 for yaw controler test only
+
+        # If the robot is going at such a slow pace, we can just turn the robot to the desired yaw
+        SLOW_SPEED_THRESHOLD = 0.01 # ALSO TUNABLE
+        if(v_fb < SLOW_SPEED_THRESHOLD):
+            psi_error = math.atan2(vy, vx) - psi_sensor
+            psi_error = math.atan2(math.sin(psi_error), math.cos(psi_error))
+            psi_error_integral_sum = sum(self.psi_error_integral.queue)
+        else:
+            psi_error = psi_d - psi_sensor
+            psi_error = math.atan2(math.sin(psi_error), math.cos(psi_error))
+            psi_error_integral_sum = sum(self.psi_error_integral.queue) + psi_error * 0.01
 
         omg_fb = k_psi_p * psi_error + k_psi_i * psi_error_integral_sum # gain times control again
 
