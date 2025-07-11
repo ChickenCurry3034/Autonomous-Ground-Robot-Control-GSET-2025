@@ -41,8 +41,8 @@ Time = [0:obj.TS:10]';
 % Create x and y reference position column vectors, of the same size as the time vector.
 % This is an example of a step function, a good start.You can get creative!
 xd = 1;            % x position
-yd = 2;         % y position
-yawd = pi/3;
+yd = 0;         % y position
+yawd = pi/4;
 
 % Or you can use a fucntion, just like this!
 % [xr, yr] = trajectory(Time);    % Uncomment me to use!
@@ -57,7 +57,7 @@ yawd = traj(:,6)
 xd(1001:end)=2;
 
 % We can also plot the trajectory to see what it looks like! Is it a step?
-ax = plotTrajectory(Time, xd, yd, yawd);
+ax = plotTrajectory(Time, xd, yd, yawd, xd, yd, yawd);
 title(ax, 'Reference Trajectory')
 %% Section 2: Simulation Loop
 % We are going to store importan variables to ve able to plot them later in
@@ -95,7 +95,7 @@ while not(stopSimulation)
     end
 end
 %% Section 3: Plot some results!
-ax = plotTrajectory(Time, data(:,3), data(:,4), data(:,5));
+ax = plotTrajectory(Time, data(:,3), data(:,4), data(:,5), xd, yd, yawd);
 title(ax, 'Robot Trajectory')
 plotOutputs(obj, Time, data, xd, yd, yawd)
 
@@ -124,13 +124,13 @@ global yaw_error;
 % Position control
 % Step 1: Start implementing a simple control in x direction only and simulate.
 
-KPx = 0;
+KPx = 8;
 KPy = 0;
-KPyaw = 0; %pi/4.75;
+KPyaw = 0.35; %pi/4.75;
 
-KIx = 1;
+KIx = 0;
 KIy = 0;
-KIyaw = pi/10;
+KIyaw = 0;
 
 KDx = 0; %10;
 KDy = 0; %10;
@@ -183,29 +183,35 @@ function [xr, yr, yawr] = trajectory(Time)
     yawr = Time>1;
 end
 
-function ax = plotTrajectory(Time, xr, yr, yawr)
-%PLOTRAJECTORY Plot some outputs!
+function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
+%PLOTTRAJECTORY Plot some outputs!
     fig = figure;
-    ax = axes(fig);
-    hold(ax, "on"), grid(ax, "on")
-    xlabel(ax, 'Time (s)')
-    ylabel(ax, 'y (m)')
-    plot(ax, Time, yr, 'k')
-    subplot(3,1,2,ax)
+    % yaw plot
+    ax(1) = subplot(3,1,1);
+    hold(ax(1), "on"), grid(ax(1), "on")
+    xlabel(ax(1), 'Time (s)')
+    ylabel(ax(1), 'Yaw (rad)')
+    plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
+    plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
+    legend(ax(1), 'Location', 'best')
 
-    ax = axes(fig);
-    hold(ax, "on"), grid(ax, "on")
-    xlabel(ax, 'Time (s)')
-    ylabel(ax, 'x (m)')
-    plot(ax, Time, xr, 'k')
-    subplot(3,1,1,ax)
+    % x plot
+    ax(2) = subplot(3,1,2);
+    hold(ax(2), "on"), grid(ax(2), "on")
+    xlabel(ax(2), 'Time (s)')
+    ylabel(ax(2), 'X Position (m)')
+    plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
+    plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
+    legend(ax(2), 'Location', 'best')
 
-    ax = axes(fig);
-    hold(ax, "on" ), grid(ax, "on")
-    xlabel(ax, 'TIme (s)')
-    ylabel(ax, 'yaw (rad)')
-    plot(ax, Time, yawr, 'k')
-    subplot(3,1,3,ax)
+    % y plot
+    ax(3) = subplot(3,1,3);
+    hold(ax(3), "on"), grid(ax(3), "on")
+    xlabel(ax(3), 'Time (s)')
+    ylabel(ax(3), 'Y Position (m)')
+    plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
+    plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
+    legend(ax(3), 'Location', 'best')
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)
