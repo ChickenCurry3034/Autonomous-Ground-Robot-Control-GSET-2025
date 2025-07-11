@@ -366,13 +366,13 @@ class Turtlebot:
         # Error calculation
         x_error_new = x_d - x_sensor
         y_error_new = y_d - y_sensor
-        psi_error_new = psi_d - psi_sensor
-        psi_error_new = math.atan2(math.sin(self.psi_error_new), math.cos(self.psi_error_new))
+
+        x_error_integral_sum = sum(self.x_error_integral.queue) + x_error_new * 0.01
+        y_error_integral_sum = sum(self.y_error_integral.queue) + y_error_new * 0.01
 
         # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
         self.x_error_integral.put(x_error_new * 0.01)
         self.y_error_integral.put(y_error_new * 0.01)
-        self.psi_error_integral.put(psi_error_new * 0.01)
 
         x_error_integral_sum = sum(self.x_error_integral.queue)
         y_error_integral_sum = sum(self.y_error_integral.queue)
@@ -381,12 +381,11 @@ class Turtlebot:
         # derivative calculations
         x_error_derivative = (x_error_new - self.x_error) / 0.01
         y_error_derivative = (y_error_new - self.y_error) / 0.01
-        psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
 
         # updating global errors
         self.x_error = x_error_new
         self.y_error = y_error_new
-        self.psi_error = psi_error_new
+
 
         # Velocity components
         vx = k_x_p * self.x_error + k_x_i * x_error_integral_sum + k_x_d * x_error_derivative
@@ -397,6 +396,21 @@ class Turtlebot:
         # v_fb = vx for x controller test only
         # v_fb = vy for y controller test only
         # v_fb = 0 for yaw controler test only
+
+        # If the robot is going at such a slow pace, we can just turn the robot to the desired yaw
+        SLOW_SPEED_THRESHOLD = 0.01 # ALSO TUNABLE
+        if(v_fb < SLOW_SPEED_THRESHOLD):
+            psi_error_new = math.atan2(vy, vx) - psi_sensor
+            psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
+            psi_error_integral_sum = sum(self.psi_error_integral.queue)
+            psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
+            self.psi_error = psi_error_new
+        else:
+            psi_error_new = psi_d - psi_sensor
+            psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
+            psi_error_integral_sum = sum(self.psi_error_integral.queue) + psi_error_new * 0.01
+            psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
+            self.psi_error = psi_error_new
 
         omg_fb = k_psi_p * self.psi_error + k_psi_i * psi_error_integral_sum + k_psi_d * psi_error_derivative # gain times control again
 
@@ -416,7 +430,8 @@ class Turtlebot:
         self.linear_speed = max(-self.linear_speed_max, min(self.linear_speed, self.linear_speed_max))
         self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
 
-        if((self.linear_speed == -self.linear_speed_max) or (self.linear_speed == self.linear_speed_max)):
+        # if going too fast, then don't increment the integral because will cause out of control movements
+        if((self.linear_speed == -self.linear_speed_max) or (self.linear_speed == self.linear_speed_max) or (self.angular_speed == -self.angular_speed_max) or (self.angular_speed == self.angular_speed_max)):
             vx = k_x_p * self.x_error + k_x_d * x_error_derivative
             vy = k_y_p * self.y_error + k_y_d * y_error_derivative
             self.x_error_integral.put(0)
