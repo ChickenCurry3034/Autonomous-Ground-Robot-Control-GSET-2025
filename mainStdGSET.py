@@ -125,11 +125,6 @@ class Turtlebot:
         self.own_imu_subscriber = None
         self.imu_angular_velocity = (0.0, 0.0, 0.0)       # Initializing angular velocity as a tuple (wx, wy, wz)
 
-        self.taps = 25 # number of samples for the integral
-        self.x_error_integral = queue.Queue(maxsize=self.taps-1)
-        self.y_error_integral = queue.Queue(maxsize=self.taps-1)
-        self.psi_error_integral = queue.Queue(maxsize=self.taps-1)
-
         self.x_error = 0
         self.y_error = 0
         self.psi_error = 0
@@ -367,17 +362,6 @@ class Turtlebot:
         x_error_new = x_d - x_sensor
         y_error_new = y_d - y_sensor
 
-        x_error_integral_sum = sum(self.x_error_integral.queue) + x_error_new * 0.01
-        y_error_integral_sum = sum(self.y_error_integral.queue) + y_error_new * 0.01
-
-        # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
-        self.x_error_integral.put(x_error_new * 0.01)
-        self.y_error_integral.put(y_error_new * 0.01)
-
-        x_error_integral_sum = sum(self.x_error_integral.queue)
-        y_error_integral_sum = sum(self.y_error_integral.queue)
-        psi_error_integral_sum = sum(self.psi_error_integral.queue)
-
         # derivative calculations
         x_error_derivative = (x_error_new - self.x_error) / 0.01
         y_error_derivative = (y_error_new - self.y_error) / 0.01
@@ -386,10 +370,9 @@ class Turtlebot:
         self.x_error = x_error_new
         self.y_error = y_error_new
 
-
         # Velocity components
-        vx = k_x_p * self.x_error + k_x_i * x_error_integral_sum + k_x_d * x_error_derivative
-        vy = k_y_p * self.y_error + k_y_i * y_error_integral_sum + k_y_d * y_error_derivative
+        vx = k_x_p * self.x_error + k_x_d * x_error_derivative
+        vy = k_y_p * self.y_error + k_y_d * y_error_derivative
 
         # Feedback linear velocity
         v_fb = math.hypot(vx, vy)
@@ -402,17 +385,15 @@ class Turtlebot:
         if(v_fb < SLOW_SPEED_THRESHOLD):
             psi_error_new = math.atan2(vy, vx) - psi_sensor
             psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
-            psi_error_integral_sum = sum(self.psi_error_integral.queue)
             psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
             self.psi_error = psi_error_new
         else:
             psi_error_new = psi_d - psi_sensor
             psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
-            psi_error_integral_sum = sum(self.psi_error_integral.queue) + psi_error_new * 0.01
             psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
             self.psi_error = psi_error_new
 
-        omg_fb = k_psi_p * self.psi_error + k_psi_i * psi_error_integral_sum + k_psi_d * psi_error_derivative # gain times control again
+        omg_fb = k_psi_p * self.psi_error + k_psi_d * psi_error_derivative # gain times control again
 
         self.linear_speed = v_fb
         self.angular_speed = omg_fb
