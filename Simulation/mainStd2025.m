@@ -124,8 +124,8 @@ global yaw_error;
 % Position control
 % Step 1: Start implementing a simple control in x direction only and simulate.
 
-KPx = 8;
-KPy = 0;
+KPx = 0.85;
+KPy = 0.14;
 KPyaw = 0.35; %pi/4.75;
 
 KIx = 0;
@@ -187,9 +187,6 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
 %PLOTTRAJECTORY Plot some outputs!
     fig = figure;
 
-    % Define the fixed Y-axis limits
-    fixed_ylim = [-2, 2];
-
     % yaw plot
     ax(1) = subplot(3,1,1);
     hold(ax(1), "on"), grid(ax(1), "on")
@@ -198,7 +195,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
     plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
     legend(ax(1), 'Location', 'best')
-    ylim(ax(1), fixed_ylim); % Apply the fixed Y-axis limits
+    ylim(ax(1), [-3.5, 3.5]); % Apply the fixed Y-axis limits
 
     % x plot
     ax(2) = subplot(3,1,2);
@@ -208,7 +205,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
     plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
     legend(ax(2), 'Location', 'best')
-    ylim(ax(2), fixed_ylim);
+    ylim(ax(2), [-2, 2]);
 
     % y plot
     ax(3) = subplot(3,1,3);
@@ -218,7 +215,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
-    ylim(ax(3), fixed_ylim);
+    ylim(ax(3), [-2, 2]);
 
     sgtitle('Robot Trajectory')
 
