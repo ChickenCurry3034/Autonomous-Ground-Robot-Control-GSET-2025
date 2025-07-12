@@ -184,8 +184,11 @@ function [xr, yr, yawr] = trajectory(Time)
 end
 
 function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
-%PLOTRAJECTORY Plot some outputs!
+%PLOTTRAJECTORY Plot some outputs!
     fig = figure;
+
+    % Define the fixed Y-axis limits
+    fixed_ylim = [-2, 2];
 
     % yaw plot
     ax(1) = subplot(3,1,1);
@@ -195,6 +198,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
     plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
     legend(ax(1), 'Location', 'best')
+    ylim(ax(1), fixed_ylim); % Apply the fixed Y-axis limits
 
     % x plot
     ax(2) = subplot(3,1,2);
@@ -204,6 +208,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
     plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
     legend(ax(2), 'Location', 'best')
+    ylim(ax(2), fixed_ylim);
 
     % y plot
     ax(3) = subplot(3,1,3);
@@ -213,8 +218,12 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
+    ylim(ax(3), fixed_ylim);
 
     sgtitle('Robot Trajectory')
+
+    % Link the x-axes of all subplots
+    linkaxes(ax, 'x');
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)
