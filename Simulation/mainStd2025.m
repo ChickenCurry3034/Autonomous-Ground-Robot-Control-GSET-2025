@@ -1,7 +1,8 @@
+function mainStd()
 % ────────────────────────────────────────────────────────────────────────%
-%                     ┬─┐┌─┐┌┐ ┌─┐┌┬┐  ┬  ┌─┐┌┐                           %
-%                     ├┬┘│ │├┴┐│ │ │   │  ├─┤├┴┐                          %
-%                     ┴└─└─┘└─┘└─┘ ┴   ┴─┘┴ ┴└─┘                          %
+%                     ┬─┐┌─┐┌┐ ┌─┐┌┬┐  ┬  ┌─┐┌┐                           %
+%                     ├┬┘│ │├┴┐│ │ │   │  ├─┤├┴┐                          %
+%                     ┴└─└─┘└─┘└─┘ ┴   ┴─┘┴ ┴└─┘                          %
 % ────────────────────────────────────────────────────────────────────────%
 % Project Title: TurtleBot Simulation
 % Author: Juan Lopez Muro, Shreya Srikanth
@@ -12,28 +13,32 @@
 % Later, we will work on an actual experiment in the lab.
 %
 % The following files need to be all in the same folder, for this mainStd.m script to run:
-%                 mainStd.m
-%                 Turtlebot.p
-%                 way_points_ext.txt
-%                 way_points_int.txt
-%                 way_points_mid.txt
+%                 mainStd.m
+%                 Turtlebot.p
+%                 way_points_ext.txt
+%                 way_points_int.txt
+%                 way_points_mid.txt
 %% Clear workspace and command window
 close all;
 clear;
 clc;
 % Before going further, scan the whole script to get an idea of what we'll do!
 %% Section 0: Data Preparation
-obj = Turtlebot();   % Create a Turtlebot object! I named it "obj" because
+obj = Turtlebot(); % Create a Turtlebot object! I named it "obj" because
 % I am boring, you can call it something else :). Do not worry about it, it will just simulate the robot dynamics.
 % Set the initial position and orientation. This is the location where you want to place the robor. For now, set them to zero!
-x0 = 0;     %-2;    %<-- use later!
-y0 = 0;     %-0.8750;   %<-- use later!
-psi0 = 0;   %pi/2;    %<-- use later!
+x0 = 0; %-2;    %<-- use later!
+y0 = 0; %-0.8750;   %<-- use later!
+psi0 = 0; %pi/2;    %<-- use later!
 obj.set_states(x0, y0, psi0)
 % Set the sampling time TS we'll use in this simulation, 0.01 will do!
 obj.set_TS(0.01);
-
 %% Defining global integral and derivative helper variables and saturation limits
+% IMPORTANT: Global variables declared within a function (like mainStd)
+% are still global. However, it's generally good practice to minimize
+% the use of globals. For local functions, if you want them to share data
+% without passing them as arguments, nested functions are often a better
+% choice, or passing the data as arguments. For now, globals will work.
 global x_error;
 global y_error;
 global yaw_error;
@@ -43,7 +48,6 @@ global net_count;
 global sample_queue_x;
 global sample_queue_y;
 global sample_queue_yaw;
-
 % Initialize global variables
 x_error = 0;
 y_error = 0;
@@ -52,78 +56,132 @@ net_count = 0;
 sample_queue_x = {};
 sample_queue_y = {};
 sample_queue_yaw = {};
-
 % Initialize global saturation limits from the Turtlebot object
 linear_speed_sat = obj.linear_speed_sat;
 angular_speed_sat = obj.angular_speed_sat;
-
 % dt = 0.01s because frequency is 100 Hz
 %% Section 1: Reference trajectory generation
-% Create a time column vector, starting from 0s, up to 10s, in TS steps.
-Time = [0:obj.TS:10]';
-% Create x and y reference position column vectors, of the same size as the time vector.
-% This is an example of a step function, a good start.You can get creative!
-xd = 1 * ones(size(Time));            % x position
-yd = 0 * ones(size(Time));         % y position
-yawd = (pi/4) * ones(size(Time));
+% Create initial time and reference vectors. These define the *desired path*.
+% They will be extended dynamically in the simulation loop if the simulation
+% runs longer than this initial trajectory.
+initialTime = [0:obj.TS:10]';
+initialXd = 1 * ones(size(initialTime));
+initialYd = 0 * ones(size(initialTime));
+initialYawd = (pi/4) * ones(size(initialTime));
 
-% Or you can use a fucntion, just like this!
-% [xr, yr] = trajectory(Time);    % Uncomment me to use!
-writeTrajectory(Time, xd, yd, yawd); % This function needs to be used to create a
-% trajectory file for the real robot. Not need to use it now, but does not hurt either.
+% Write the initial trajectory to file.
+writeTrajectory(initialTime, initialXd, initialYd, initialYawd);
+
+% Import data from the generated trajectory file. These will be the
+% reference points the robot tries to follow.
 traj = importdata('myTrajectory.txt').data;
-Time = traj(:,1);
-xd   = traj(:,4);
-yd   = traj(:,5);
-yawd = traj(:,6);
-% This line modifies the trajectory after import.
+Time_ref = traj(:,1); % Renamed to avoid conflict with dynamic Time
+Xd_ref = traj(:,4);   % Renamed to avoid conflict with dynamic Xd
+Yd_ref = traj(:,5);   % Renamed to avoid conflict with dynamic Yd
+Yawd_ref = traj(:,6); % Renamed to avoid conflict with dynamic Yawd
 
-% We can also plot the trajectory to see what it looks like! Is it a step?
-ax_traj = plotTrajectory(Time, xd, yd, yawd, xd, yd, yawd);
-title(ax_traj(1), 'Reference Trajectory Yaw'); % Title for the first subplot (yaw)
-title(ax_traj(2), 'Reference Trajectory X');   % Title for the second subplot (x)
-title(ax_traj(3), 'Reference Trajectory Y');   % Title for the third subplot (y)
+% Plot the initial reference trajectory.
+ax_traj = plotTrajectory(Time_ref, Xd_ref, Yd_ref, Yawd_ref, Xd_ref, Yd_ref, Yawd_ref);
+title(ax_traj(1), 'Initial Reference Trajectory Yaw');
+title(ax_traj(2), 'Initial Reference Trajectory X');
+title(ax_traj(3), 'Initial Reference Trajectory Y');
+
+x_accept = 0.01;
+y_accept = 0.01;
+yaw_accept = 0.06;
 
 %% Section 2: Simulation Loop
-% We are going to store importan variables to ve able to plot them later in
+% We are going to store important variables to be able to plot them later in
 % a data matrix: [ u1, u2, x, y, psi, vx, vy, v, wz]
-data = zeros(length(Time), 9);
-% This is the main simulation loop.
-stopSimulation = false; % simuation flag
-i = 0;                  % loop index
+data = []; % Initialize as empty, as length is no longer fixed by Time vector
+
+% These vectors will store the actual time and reference values for the
+% duration of the simulation, extending dynamically as needed.
+simTime = [];
+simXd = [];
+simYd = [];
+simYawd = [];
+
+stopSimulation = false; % simulation flag
+i = 0; % loop index
+max_sim_steps = 20000; % Safety net to prevent infinite loops (e.g., 200 seconds at 0.01s TS)
+
 while not(stopSimulation)
     i = i + 1;
-    % Reference at each time step:
-    x_d= xd(i);
-    y_d= yd(i);
-    yaw_d = yawd(i);
+
+    % Determine current desired reference point
+    if i <= length(Time_ref) % Use the pre-defined trajectory if within its bounds
+        current_x_d = Xd_ref(i);
+        current_y_d = Yd_ref(i);
+        current_yaw_d = Yawd_ref(i);
+    else % If simulation extends beyond the initial trajectory, hold the last target
+        current_x_d = Xd_ref(end);
+        current_y_d = Yd_ref(end);
+        current_yaw_d = Yawd_ref(end);
+    end
+
     % Get the information from the sensors!
     [x_sensor, y_sensor, psi_sensor, vx_sensor, vy_sensor, omega_sensor] = obj.get_perfectSensor();
     % Yes, this is a "perfect" sensor that gives us true values. In real
     % life, these values are noisy. We can add some white noise to the
     % measuremnts!
-    %     psi_sensor     =   psi_sensor    +  (-0.5 + rand(1,1))*10^-2;
-    % Control: This is the importat part where we actually have to work.
-    % Let's implement the control algorithm in a separate funtion.
-    [u] = controller(x_sensor, y_sensor, psi_sensor, x_d, y_d, yaw_d);
+    %     psi_sensor     =   psi_sensor    +  (-0.5 + rand(1,1))*10^-2;
+
+    % Control: This is the important part where we actually have to work.
+    % Let's implement the control algorithm in a separate function.
+    [u] = controller(x_sensor, y_sensor, psi_sensor, current_x_d, current_y_d, current_yaw_d);
+
+    % Store simulation data. MATLAB will automatically grow 'data'.
     data(i,:) = obj.get_log(); %[ u1, u2, x, y, psi, vx, vy, v, wz]
+
+    % Append current time and reference to dynamically growing vectors for plotting
+    simTime(i) = (i-1) * obj.TS; % Calculate current time based on step and TS
+    simXd(i) = current_x_d;
+    simYd(i) = current_y_d;
+    simYawd(i) = current_yaw_d;
+
     % Bot simulation
-    obj.move(u);            % Do not modify
-    % Stop Simulation
-    if i == length(Time)
+    obj.move(u); % Do not modify
+
+    % Stop Simulation Condition: Check if errors are within tolerance
+    current_x_error = abs(current_x_d - x_sensor);
+    current_y_error = abs(current_y_d - y_sensor);
+    % Normalize yaw error to [-pi, pi] for correct comparison
+    current_yaw_error = abs(atan2(sin(current_yaw_d - psi_sensor), cos(current_yaw_d - psi_sensor)));
+
+    if current_x_error <= x_accept && current_y_error <= y_accept && current_yaw_error <= yaw_accept
         stopSimulation = true;
+        fprintf('Simulation stopped: Target reached at time step %d.\n', i);
+    end
+
+    % Safety net: Stop if maximum simulation steps reached
+    if i >= max_sim_steps
+        stopSimulation = true;
+        fprintf('Simulation stopped: Maximum time steps (%d) reached without convergence.\n', max_sim_steps);
     end
 end
+
+% Assign the dynamically grown vectors to the original variable names
+% for use in plotting and file writing functions.
+Time = simTime'; % Transpose to make it a column vector
+xd = simXd';
+yd = simYd';
+yawd = simYawd';
+% data is already correctly sized by now
+
 %% Section 3: Plot some results!
 ax_robot_traj = plotTrajectory(Time, data(:,3), data(:,4), data(:,5), xd, yd, yawd);
 title(ax_robot_traj(1), 'Robot Trajectory Yaw'); % Title for the first subplot (yaw)
-title(ax_robot_traj(2), 'Robot Trajectory X');   % Title for the second subplot (x)
-title(ax_robot_traj(3), 'Robot Trajectory Y');   % Title for the third subplot (y)
+title(ax_robot_traj(2), 'Robot Trajectory X'); % Title for the second subplot (x)
+title(ax_robot_traj(3), 'Robot Trajectory Y'); % Title for the third subplot (y)
 
 plotOutputs(obj, Time, data, xd, yd, yawd)
 writeTrajectory(Time, xd, yd, yawd)
 
-%% Function to be coded:
+end % <--- This ends the mainStd function
+
+%% LOCAL FUNCTIONS (These functions are defined within the same file as mainStd)
+
 function [u] = controller(x, y, psi, x_d, y_d, yaw_d)
 global x_error;
 global y_error;
@@ -189,7 +247,7 @@ yaw = atan2(v_y,v_x); % desired yaw
 v = sqrt(v_y^2 + v_x^2); % Complete this yourself
 v = max(-linear_speed_sat, min(v, linear_speed_sat));
 % Don't update integral if the speed is at saturation limit
-if v==-linear_speed_sat | v==linear_speed_sat
+if v==-linear_speed_sat || v==linear_speed_sat % Corrected logical OR
     sample_queue_x{end} = 0;
     sample_queue_y{end} = 0;
     v_x=x_e*KPx + x_e_derivative*KDx;
@@ -223,9 +281,12 @@ yaw_error = yaw_e;
 
 omg = KPyaw*yaw_e + KIyaw*yaw_e_integral + yaw_e_derivative*KDyaw;
 omg = max(-angular_speed_sat, min(omg, angular_speed_sat));
-if omg==-angular_speed_sat | omg==angular_speed_sat
+if omg==-angular_speed_sat || omg==angular_speed_sat % Corrected logical OR
     sample_queue_yaw{end} = 0;
-    omg=x_e*KPx + x_e_derivative*KDx;
+    % This line previously had a copy-paste error (KPx and KDx).
+    % Corrected to use KPyaw and KDyaw for angular velocity control,
+    % and removed the integral part when saturating to prevent windup.
+    omg=KPyaw*yaw_e + yaw_e_derivative*KDyaw;
     omg = max(-angular_speed_sat, min(omg, angular_speed_sat));
 end
 
