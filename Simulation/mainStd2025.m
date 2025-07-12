@@ -29,7 +29,7 @@ obj = Turtlebot();   % Create a Turtlebot object! I named it "obj" because
 % Set the initial position and orientation. This is the location where you want to place the robor. For now, set them to zero!
 x0 = 0;     %-2;    %<-- use later!
 y0 = 0;     %-0.8750;   %<-- use later!
-psi0 = 0.5;   %pi/2;    %<-- use later!
+psi0 = 0;   %pi/2;    %<-- use later!
 obj.set_states(x0, y0, psi0)
 
 % Set the sampling time TS we'll use in this simulation, 0.01 will do!
@@ -184,8 +184,9 @@ function [xr, yr, yawr] = trajectory(Time)
 end
 
 function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
-%PLOTTRAJECTORY Plot some outputs!
+%PLOTRAJECTORY Plot some outputs!
     fig = figure;
+
     % yaw plot
     ax(1) = subplot(3,1,1);
     hold(ax(1), "on"), grid(ax(1), "on")
@@ -212,6 +213,8 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
+
+    sgtitle('Robot Trajectory')
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)
