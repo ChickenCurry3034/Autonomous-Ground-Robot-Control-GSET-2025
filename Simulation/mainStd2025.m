@@ -182,6 +182,109 @@ end % <--- This ends the mainStd function
 
 %% LOCAL FUNCTIONS (These functions are defined within the same file as mainStd)
 
+nodes_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
+nodes_map('A') = [0, 0, 0];
+nodes_map('B') = [1, 2, pi/4];
+nodes_map('C') = [2, 3, pi/3];
+nodes_map('D') = [3, 2, pi/2];
+nodes_map('E') = [4, 1, -pi/6];
+nodes_map('F') = [4, 2, -pi/3];
+nodes_map('G') = [4, 3, pi/4];
+
+connections_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
+connections_map('A') = {'B', 'C'};
+connections_map('B') = {'A', 'C', 'D'};
+connections_map('C') = {'A', 'B', 'D', 'G'};
+connections_map('D') = {'B', 'C', 'E', 'F', 'G'};
+connections_map('E') = {'D', 'F'};
+connections_map('F') = {'D', 'G'};
+connections_map('G') = {'C', 'F'};
+
+start_node = 'A';
+end_node = 'G';
+
+function path = dijkstra(nodes, connections, start_node, end_node)
+
+    distances = containers.Map('KeyType', 'char', 'ValueType', 'double');
+    node_names = nodes.keys();
+    for k = 1:length(node_names)
+        distances(node_names{k}) = inf;
+    end
+    distances(start_node) = 0;
+
+    unvisited = node_names;
+
+    prev = containers.Map('KeyType', 'char', 'ValueType', 'char');
+
+    while ~isempty(unvisited)
+        min_distance_node = '';
+        min_dist = inf;
+
+        for k = 1:length(unvisited)
+            node = unvisited{k};
+            if distances.isKey(node) && distances(node) < min_dist
+                min_dist = distances(node);
+                min_distance_node = node;
+            end
+        end
+
+        if isempty(min_distance_node) || distances(min_distance_node) == inf
+            break;
+        end
+
+        current_node = min_distance_node;
+
+        unvisited(strcmp(unvisited, current_node)) = [];
+
+        if strcmp(current_node, end_node)
+            break;
+        end
+
+        if connections.isKey(current_node)
+            neighbors = connections(current_node);
+            for k = 1:length(neighbors)
+                neighbor = neighbors{k};
+
+                if any(strcmp(unvisited, neighbor))
+                    dist_to_neighbor = hypot(nodes(neighbor)(1) - nodes(current_node)(1), nodes(neighbor)(2) - nodes(current_node)(2));
+
+                    alt = distances(current_node) + dist_to_neighbor;
+
+                    if alt < distances(neighbor)
+                        distances(neighbor) = alt;
+                        prev(neighbor) = current_node;
+                    end
+                end
+            end
+        end
+    end
+
+    path = {};
+    current = end_node;
+
+    if strcmp(start_node, end_node)
+        path = {start_node};
+        return;
+    end
+
+    if ~prev.isKey(end_node)
+        path = {}; % No path found
+        return;
+    end
+
+    while prev.isKey(current)
+        path = [current, path];
+        current = prev(current);
+    end
+
+    if strcmp(current, start_node)
+        path = [start_node, path];
+    else
+        path = {};
+    end
+
+end
+
 function [u] = controller(x, y, psi, x_d, y_d, yaw_d)
 global x_error;
 global y_error;
