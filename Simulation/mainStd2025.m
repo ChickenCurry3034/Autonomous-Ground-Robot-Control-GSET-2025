@@ -64,8 +64,8 @@ Time = [0:obj.TS:10]';
 % Create x and y reference position column vectors, of the same size as the time vector.
 % This is an example of a step function, a good start.You can get creative!
 xd = 1 * ones(size(Time));            % x position
-yd = 0.5 * ones(size(Time));         % y position
-yawd = (pi/3) * ones(size(Time));
+yd = 0 * ones(size(Time));         % y position
+yawd = (pi/4) * ones(size(Time));
 
 % Or you can use a fucntion, just like this!
 % [xr, yr] = trajectory(Time);    % Uncomment me to use!
@@ -76,7 +76,7 @@ Time = traj(:,1);
 xd   = traj(:,4);
 yd   = traj(:,5);
 yawd = traj(:,6);
-xd(1001:end)=1; % This line modifies the trajectory after import.
+% This line modifies the trajectory after import.
 
 % We can also plot the trajectory to see what it looks like! Is it a step?
 ax_traj = plotTrajectory(Time, xd, yd, yawd, xd, yd, yawd);
@@ -138,16 +138,16 @@ global sample_queue_yaw;
 % Position control
 % Step 1: Start implementing a simple control in x direction only and simulate.
 KPx = 1.5;
-KPy = 1.5;
-KPyaw = pi/3; %pi/4.75;
+KPy = 1;
+KPyaw = 0.99; %pi/4.75;
 
-KIx = 1;
-KIy = 1;
-KIyaw = pi/4;
+KIx = 0.5;
+KIy = 0.5;
+KIyaw = 0.12;
 
-KDx = 0; %10;
-KDy = 0; %10;
-KDyaw = 0; %pi;
+KDx = 0.1; %10;
+KDy = 0.1; %10;
+KDyaw = 0.02; %pi;
 
 dt = 0.01; % Sampling time, equivalent to obj.TS
 
@@ -198,7 +198,7 @@ if v==-linear_speed_sat | v==linear_speed_sat
     v = sqrt(v_y^2 + v_x^2); % Complete this yourself
     v = max(-linear_speed_sat, min(v, linear_speed_sat));
 end
-if v < 0.01 % TUNABLE VALUE/THRESHOLD FOR FINAL VELOCITY
+if v < 0.02 % TUNABLE VALUE/THRESHOLD FOR FINAL VELOCITY
     yaw = yaw_d; % default to final angle at end of path
 end
 
@@ -241,9 +241,6 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
 %PLOTTRAJECTORY Plot some outputs!
     fig = figure;
 
-    % Define the fixed Y-axis limits
-    fixed_ylim = [-2, 2];
-
     % yaw plot
     ax(1) = subplot(3,1,1);
     hold(ax(1), "on"), grid(ax(1), "on")
@@ -252,7 +249,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
     plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
     legend(ax(1), 'Location', 'best')
-    ylim(ax(1), fixed_ylim); % Apply the fixed Y-axis limits
+    ylim(ax(1), [-3.5, 3.5]); % Apply the fixed Y-axis limits
 
     % x plot
     ax(2) = subplot(3,1,2);
@@ -262,7 +259,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
     plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
     legend(ax(2), 'Location', 'best')
-    ylim(ax(2), fixed_ylim);
+    ylim(ax(2), [-1.5, 1.5]);
 
     % y plot
     ax(3) = subplot(3,1,3);
@@ -272,7 +269,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
-    ylim(ax(3), fixed_ylim);
+    ylim(ax(3), [-1.5, 1.5]);
 
     sgtitle('Robot Trajectory')
 
