@@ -88,7 +88,7 @@ title(ax_traj(3), 'Initial Reference Trajectory Y');
 
 x_accept = 0.01;
 y_accept = 0.01;
-yaw_accept = 0.06;
+yaw_accept = 0.11;
 
 %% Section 2: Simulation Loop
 % We are going to store important variables to be able to plot them later in
@@ -104,7 +104,7 @@ simYawd = [];
 
 stopSimulation = false; % simulation flag
 i = 0; % loop index
-max_sim_steps = 20000; % Safety net to prevent infinite loops (e.g., 200 seconds at 0.01s TS)
+max_sim_steps = 3000; % Safety net to prevent infinite loops (e.g., 200 seconds at 0.01s TS)
 
 nodes_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
 nodes_map('A') = [0, 0, 0];
@@ -315,11 +315,11 @@ global sample_queue_yaw;
 % Step 1: Start implementing a simple control in x direction only and simulate.
 KPx = 1.5;
 KPy = 1;
-KPyaw = 0.99; %pi/4.75;
+KPyaw = 1.2; %pi/4.75;
 
 KIx = 0.5;
 KIy = 0.5;
-KIyaw = 0.12;
+KIyaw = 0.3;
 
 KDx = 0.1; %10;
 KDy = 0.1; %10;
