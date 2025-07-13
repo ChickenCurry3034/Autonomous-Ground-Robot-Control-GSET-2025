@@ -106,18 +106,48 @@ stopSimulation = false; % simulation flag
 i = 0; % loop index
 max_sim_steps = 20000; % Safety net to prevent infinite loops (e.g., 200 seconds at 0.01s TS)
 
+nodes_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
+nodes_map('A') = [0, 0, 0];
+nodes_map('B') = [1, 2, pi/4];
+nodes_map('C') = [2, 3, pi/3];
+nodes_map('D') = [3, 2, pi/2];
+nodes_map('E') = [4, 1, -pi/6];
+nodes_map('F') = [4, 2, -pi/3];
+nodes_map('G') = [4, 3, pi/4];
+
+connections_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
+connections_map('A') = {'B', 'C'};
+connections_map('B') = {'A', 'C', 'D'};
+connections_map('C') = {'A', 'B', 'D', 'G'};
+connections_map('D') = {'B', 'C', 'E', 'F', 'G'};
+connections_map('E') = {'D', 'F'};
+connections_map('F') = {'D', 'G'};
+connections_map('G') = {'C', 'F'};
+
+start_node = 'A';
+end_node = 'G';
+best_path = dijkstra(nodes_map, connections_map, start_node, end_node);
+fprintf('Calculated path from %s to %s: %s\n', start_node, end_node, strjoin(best_path, ' -> '));
+path_length = length(best_path);
+current_node = 1;
+keys = nodes_map.keys();
+
 while not(stopSimulation)
     i = i + 1;
 
     % Determine current desired reference point
     if i <= length(Time_ref) % Use the pre-defined trajectory if within its bounds
-        current_x_d = Xd_ref(i);
-        current_y_d = Yd_ref(i);
-        current_yaw_d = Yawd_ref(i);
+        key = keys{current_node};
+        coordinates = nodes_map(key);
+        current_x_d = coordinates(1);
+        current_y_d = coordinates(2);
+        current_yaw_d = coordinates(3);
     else % If simulation extends beyond the initial trajectory, hold the last target
-        current_x_d = Xd_ref(end);
-        current_y_d = Yd_ref(end);
-        current_yaw_d = Yawd_ref(end);
+        key = keys{current_node};
+        coordinates = nodes_map(key);
+        current_x_d = coordinates(1);
+        current_y_d = coordinates(2);
+        current_yaw_d = coordinates(3);
     end
 
     % Get the information from the sensors!
@@ -150,8 +180,12 @@ while not(stopSimulation)
     current_yaw_error = abs(atan2(sin(current_yaw_d - psi_sensor), cos(current_yaw_d - psi_sensor)));
 
     if current_x_error <= x_accept && current_y_error <= y_accept && current_yaw_error <= yaw_accept
-        stopSimulation = true;
-        fprintf('Simulation stopped: Target reached at time step %d.\n', i);
+        if(current_node >= path_length)
+            stopSimulation = true;
+        else
+            current_node = current_node + 1;
+        end
+        fprintf('Simulation point stopped: Target reached at time step %d.\n', i);
     end
 
     % Safety net: Stop if maximum simulation steps reached
@@ -181,27 +215,6 @@ writeTrajectory(Time, xd, yd, yawd)
 end % <--- This ends the mainStd function
 
 %% LOCAL FUNCTIONS (These functions are defined within the same file as mainStd)
-
-nodes_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
-nodes_map('A') = [0, 0, 0];
-nodes_map('B') = [1, 2, pi/4];
-nodes_map('C') = [2, 3, pi/3];
-nodes_map('D') = [3, 2, pi/2];
-nodes_map('E') = [4, 1, -pi/6];
-nodes_map('F') = [4, 2, -pi/3];
-nodes_map('G') = [4, 3, pi/4];
-
-connections_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
-connections_map('A') = {'B', 'C'};
-connections_map('B') = {'A', 'C', 'D'};
-connections_map('C') = {'A', 'B', 'D', 'G'};
-connections_map('D') = {'B', 'C', 'E', 'F', 'G'};
-connections_map('E') = {'D', 'F'};
-connections_map('F') = {'D', 'G'};
-connections_map('G') = {'C', 'F'};
-
-start_node = 'A';
-end_node = 'G';
 
 function path = dijkstra(nodes, connections, start_node, end_node)
 
@@ -246,7 +259,9 @@ function path = dijkstra(nodes, connections, start_node, end_node)
                 neighbor = neighbors{k};
 
                 if any(strcmp(unvisited, neighbor))
-                    dist_to_neighbor = hypot(nodes(neighbor)(1) - nodes(current_node)(1), nodes(neighbor)(2) - nodes(current_node)(2));
+                    pos_current = nodes(current_node);
+                    pos_neighbor = nodes(neighbor);
+                    dist_to_neighbor = hypot(pos_neighbor(1) - pos_current(1), pos_neighbor(2) - pos_current(2));
 
                     alt = distances(current_node) + dist_to_neighbor;
 
@@ -423,7 +438,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
     plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
     legend(ax(2), 'Location', 'best')
-    ylim(ax(2), [-1.5, 1.5]);
+    ylim(ax(2), [-1, 5]);
 
     % y plot
     ax(3) = subplot(3,1,3);
@@ -433,7 +448,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
-    ylim(ax(3), [-1.5, 1.5]);
+    ylim(ax(3), [-1, 5]);
 
     sgtitle('Robot Trajectory')
 
