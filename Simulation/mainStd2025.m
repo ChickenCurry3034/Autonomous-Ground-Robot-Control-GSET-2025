@@ -304,8 +304,8 @@ function [u] = controller(x, y, psi, x_d, y_d, yaw_d)
 global x_error;
 global y_error;
 global yaw_error;
-global linear_speed_sat; % Declare global saturation limits
-global angular_speed_sat; % Declare global saturation limits
+global linear_speed_sat;
+global angular_speed_sat;
 global net_count; % number of samples tracked
 global sample_queue_x;
 global sample_queue_y;
@@ -401,9 +401,6 @@ omg = KPyaw*yaw_e + KIyaw*yaw_e_integral + yaw_e_derivative*KDyaw;
 omg = max(-angular_speed_sat, min(omg, angular_speed_sat));
 if omg==-angular_speed_sat || omg==angular_speed_sat % Corrected logical OR
     sample_queue_yaw{end} = 0;
-    % This line previously had a copy-paste error (KPx and KDx).
-    % Corrected to use KPyaw and KDyaw for angular velocity control,
-    % and removed the integral part when saturating to prevent windup.
     omg=KPyaw*yaw_e + yaw_e_derivative*KDyaw;
     omg = max(-angular_speed_sat, min(omg, angular_speed_sat));
 end
