@@ -116,7 +116,7 @@ simYawd = [];
 
 stopSimulation = false; % simulation flag
 i = 0; % loop index
-max_sim_steps = 3000; % Safety net to prevent infinite loops (e.g., 200 seconds at 0.01s TS)
+max_sim_steps = 30000; % Safety net to prevent infinite loops (e.g., 200 seconds at 0.01s TS)
 
 nodes_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
 nodes_map('A') = [0, 0, 0];
@@ -126,6 +126,25 @@ nodes_map('D') = [3, 2, pi/2];
 nodes_map('E') = [4, 1, -pi/6];
 nodes_map('F') = [4, 2, -pi/3];
 nodes_map('G') = [4, 3, pi/4];
+nodes_map('H') = [5, 2, -pi/4];
+nodes_map('I') = [6, 1, pi/6];
+nodes_map('J') = [7, 3, -3*pi/4];
+nodes_map('K') = [6, 4, pi/3];
+nodes_map('L') = [4, 7, pi/4];
+nodes_map('M') = [4, 5, pi/2];
+nodes_map('N') = [3, 6, 3*pi/4];
+nodes_map('O') = [8, 1, -pi/3];
+nodes_map('P') = [1, 8, -pi/4];
+nodes_map('Q') = [5, 5, pi/4];
+nodes_map('R') = [4, 8, pi/2];
+nodes_map('S') = [3, 7, -2*pi/3];
+nodes_map('T') = [6, 6, 2*pi/3];
+nodes_map('U') = [7, 7, pi/4];
+nodes_map('V') = [6, 7, -pi/3];
+nodes_map('W') = [7, 6, pi/2];
+nodes_map('X') = [8, 8, -2*pi/3];
+nodes_map('Y') = [6, 9, -pi/3];
+nodes_map('Z') = [5, 8, 3*pi/4];
 
 connections_map = containers.Map('KeyType', 'char', 'ValueType', 'any');
 connections_map('A') = {'B', 'C'};
@@ -134,11 +153,32 @@ connections_map('C') = {'A', 'B', 'D', 'G'};
 connections_map('D') = {'B', 'C', 'E', 'F', 'G'};
 connections_map('E') = {'D', 'F'};
 connections_map('F') = {'D', 'G'};
-connections_map('G') = {'C', 'F'};
+connections_map('G') = {'C', 'F', 'H'};
+connections_map('H') = {'G', 'I', 'J'};
+connections_map('I') = {'H', 'J', 'K'};
+connections_map('J') = {'H', 'I', 'K'};
+connections_map('K') = {'I', 'J', 'L', 'M', 'N'};
+connections_map('L') = {'K', 'M'};
+connections_map('M') = {'K', 'N'};
+connections_map('N') = {'M', 'O'};
+connections_map('O') = {'N', 'P'};
+connections_map('P') = {'O', 'Q', 'R'};
+connections_map('Q') = {'P', 'R', 'U'};
+connections_map('R') = {'P', 'Q', 'S', 'T', 'U'};
+connections_map('S') = {'R', 'T'};
+connections_map('T') = {'R', 'U'};
+connections_map('U') = {'Q', 'T', 'V'};
+connections_map('V') = {'U', 'W', 'X'};
+connections_map('W') = {'V', 'X', 'Y'};
+connections_map('X') = {'V', 'W', 'Y'};
+connections_map('Y') = {'W', 'X', 'Z'};
+connections_map('Z') = {'Y'};
 
 start_node = 'A';
-end_node = 'G';
+end_node = 'Z';
+tic
 best_path = dijkstra(nodes_map, connections_map, start_node, end_node);
+fprintf('\nTime to generate most efficient path: %d.\n', toc);
 fprintf('Calculated path from %s to %s: %s\n', start_node, end_node, strjoin(best_path, ' -> '));
 path_length = length(best_path);
 current_node = 1;
@@ -465,7 +505,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
     plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
     legend(ax(2), 'Location', 'best')
-    ylim(ax(2), [-1, 5]);
+    ylim(ax(2), [-1, 9]);
 
     % y plot
     ax(3) = subplot(3,1,3);
@@ -475,7 +515,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
-    ylim(ax(3), [-1, 5]);
+    ylim(ax(3), [-1, 9]);
 
     sgtitle('Robot Trajectory')
 
