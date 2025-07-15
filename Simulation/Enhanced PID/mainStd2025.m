@@ -43,6 +43,11 @@ global net_count;
 global sample_queue_x;
 global sample_queue_y;
 global sample_queue_yaw;
+global x_error_sum;
+global y_error_sum;
+global yaw_error_sum;
+global linear_distance;
+global angular_distance;
 
 % Initialize global variables
 x_error = 0;
@@ -52,6 +57,11 @@ net_count = 0;
 sample_queue_x = {};
 sample_queue_y = {};
 sample_queue_yaw = {};
+x_error_sum = 0;
+y_error_sum = 0;
+yaw_error_sum = 0;
+linear_distance = 0;
+angular_distance = 0;
 
 % Initialize global saturation limits from the Turtlebot object
 linear_speed_sat = obj.linear_speed_sat;
@@ -91,6 +101,12 @@ data = zeros(length(Time), 9);
 % This is the main simulation loop.
 stopSimulation = false; % simuation flag
 i = 0;                  % loop index
+
+x_accept = 0.01;
+y_accept = 0.01;
+yaw_accept = 0.11;
+max_sim_steps = 3000;
+
 while not(stopSimulation)
     i = i + 1;
     % Reference at each time step:
@@ -109,19 +125,44 @@ while not(stopSimulation)
     data(i,:) = obj.get_log(); %[ u1, u2, x, y, psi, vx, vy, v, wz]
     % Bot simulation
     obj.move(u);            % Do not modify
-    % Stop Simulation
-    if i == length(Time)
+
+    % Stop Simulation Condition: Check if errors are within tolerance
+    current_x_error = abs(x_d - x_sensor);
+    current_y_error = abs(y_d - y_sensor);
+    % Normalize yaw error to [-pi, pi] for correct comparison
+    current_yaw_error = abs(atan2(sin(yaw_d - psi_sensor), cos(yaw_d - psi_sensor)));
+
+    % solving for the integrals of errors
+    x_error_sum = x_error_sum + abs(current_x_error * 0.01);
+    y_error_sum = y_error_sum + abs(current_y_error * 0.01);
+    yaw_error_sum = yaw_error_sum + abs(current_yaw_error * 0.01);
+
+    if current_x_error <= x_accept && current_y_error <= y_accept && current_yaw_error <= yaw_accept
         stopSimulation = true;
+        fprintf('Simulation point stopped: Target reached at time step %d.\n', i);
+    end
+
+    % Safety net: Stop if maximum simulation steps reached
+    if i >= max_sim_steps
+        stopSimulation = true;
+        fprintf('Simulation stopped: Maximum time steps (%d) reached without convergence.\n', max_sim_steps);
     end
 end
 %% Section 3: Plot some results!
-ax_robot_traj = plotTrajectory(Time, data(:,3), data(:,4), data(:,5), xd, yd, yawd);
-title(ax_robot_traj(1), 'Robot Trajectory Yaw'); % Title for the first subplot (yaw)
-title(ax_robot_traj(2), 'Robot Trajectory X');   % Title for the second subplot (x)
-title(ax_robot_traj(3), 'Robot Trajectory Y');   % Title for the third subplot (y)
+ax_robot_traj = plotTrajectory(Time(1:i), data(1:i,3), data(1:i,4), data(1:i,5), xd(1:i), yd(1:i), yawd(1:i));
+title(ax_robot_traj(1), 'Robot Trajectory Yaw'); 
+title(ax_robot_traj(2), 'Robot Trajectory X'); 
+title(ax_robot_traj(3), 'Robot Trajectory Y'); 
 
-plotOutputs(obj, Time, data, xd, yd, yawd)
-writeTrajectory(Time, xd, yd, yawd)
+plotOutputs(obj, Time(1:i), data(1:i,:), xd(1:i), yd(1:i), yawd(1:i))
+writeTrajectory(Time(1:i), xd(1:i), yd(1:i), yawd(1:i))
+
+fprintf('\nTotal accumulated x error integral: %d.\n', x_error_sum);
+fprintf('Total accumulated y error integral: %d.\n', y_error_sum);
+fprintf('Total accumulated yaw error integral: %d.\n\n', yaw_error_sum);
+
+fprintf('Total distance traveled: %d.\n', linear_distance);
+fprintf('Total angular distance traveled: %d.\n\n', angular_distance);
 
 %% Function to be coded:
 function [u] = controller(x, y, psi, x_d, y_d, yaw_d)
@@ -134,6 +175,11 @@ global net_count; % number of samples tracked
 global sample_queue_x;
 global sample_queue_y;
 global sample_queue_yaw;
+global linear_distance;
+global angular_distance;
+global x_error_sum;
+global y_error_sum;
+global yaw_error_sum;
 
 % Position control
 % Step 1: Start implementing a simple control in x direction only and simulate.
@@ -235,6 +281,14 @@ end
 
 % Output Control Signal
 [u] = [v, omg];
+
+% solving for the integrals of errors
+x_error_sum = x_error_sum + abs((x_d - x) * 0.01);
+y_error_sum = y_error_sum + abs((y_d - y) * 0.01);
+yaw_error_sum = yaw_error_sum + abs((yaw_d - psi) * 0.01);
+
+linear_distance = linear_distance + abs(v) * 0.01;
+angular_distance = angular_distance + abs(omg) * 0.01;
 end
 
 function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)

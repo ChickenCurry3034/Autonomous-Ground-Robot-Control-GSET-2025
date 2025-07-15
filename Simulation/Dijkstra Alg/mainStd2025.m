@@ -48,6 +48,12 @@ global net_count;
 global sample_queue_x;
 global sample_queue_y;
 global sample_queue_yaw;
+global x_error_sum;
+global y_error_sum;
+global yaw_error_sum;
+global linear_distance;
+global angular_distance;
+
 % Initialize global variables
 x_error = 0;
 y_error = 0;
@@ -56,6 +62,12 @@ net_count = 0;
 sample_queue_x = {};
 sample_queue_y = {};
 sample_queue_yaw = {};
+x_error_sum = 0;
+y_error_sum = 0;
+yaw_error_sum = 0;
+linear_distance = 0;
+angular_distance = 0;
+
 % Initialize global saturation limits from the Turtlebot object
 linear_speed_sat = obj.linear_speed_sat;
 angular_speed_sat = obj.angular_speed_sat;
@@ -179,6 +191,11 @@ while not(stopSimulation)
     % Normalize yaw error to [-pi, pi] for correct comparison
     current_yaw_error = abs(atan2(sin(current_yaw_d - psi_sensor), cos(current_yaw_d - psi_sensor)));
 
+    % solving for the integrals of errors
+    x_error_sum = x_error_sum + abs(current_x_error * 0.01);
+    y_error_sum = y_error_sum + abs(current_y_error * 0.01);
+    yaw_error_sum = yaw_error_sum + abs(current_yaw_error * 0.01);
+
     if current_x_error <= x_accept && current_y_error <= y_accept && current_yaw_error <= yaw_accept
         if(current_node >= path_length)
             stopSimulation = true;
@@ -194,6 +211,13 @@ while not(stopSimulation)
         fprintf('Simulation stopped: Maximum time steps (%d) reached without convergence.\n', max_sim_steps);
     end
 end
+
+fprintf('\nTotal accumulated x error integral: %d.\n', x_error_sum);
+fprintf('Total accumulated y error integral: %d.\n', y_error_sum);
+fprintf('Total accumulated yaw error integral: %d.\n\n', yaw_error_sum);
+
+fprintf('Total distance traveled: %d.\n', linear_distance);
+fprintf('Total angular distance traveled: %d.\n\n', angular_distance);
 
 % Assign the dynamically grown vectors to the original variable names
 % for use in plotting and file writing functions.
@@ -310,6 +334,8 @@ global net_count; % number of samples tracked
 global sample_queue_x;
 global sample_queue_y;
 global sample_queue_yaw;
+global linear_distance;
+global angular_distance;
 
 % Position control
 % Step 1: Start implementing a simple control in x direction only and simulate.
@@ -411,6 +437,10 @@ end
 
 % Output Control Signal
 [u] = [v, omg];
+
+% updating distances
+linear_distance = linear_distance + abs(v) * 0.01;
+angular_distance = angular_distance + abs(omg) * 0.01;
 end
 
 function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
