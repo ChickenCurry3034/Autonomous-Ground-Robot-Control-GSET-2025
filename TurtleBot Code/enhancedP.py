@@ -330,9 +330,40 @@ class Turtlebot:
         y_sensor = self.position[1]
         psi_sensor = self.yaw
         
-        '''Controller'''        	
+        '''Controller'''            
         # WRITE CONTROLLER HERE
+
+        # Desired trajectory attributes - TUNABLE
+        x_d = self.x_traj
+        y_d = self.y_traj
         
+        # Proportional gain values - TUNABLE
+        k_x_p = 1
+        k_y_p = 1
+        k_psi_p = 4
+
+        # Error calculation
+        x_error = x_d - x_sensor
+        y_error = y_d - y_sensor
+        
+        #psi_error = math.atan2(math.sin(psi_error), math.cos(psi_error))
+
+        # Velocity components
+        vx = k_x_p*x_error
+        vy = k_y_p * y_error
+        psi_d = math.atan2(vy,vx)
+        psi_error = psi_d - psi_sensor
+
+        # Feedback linear velocity
+        v_fb = math.hypot(vx, vy)
+        # v_fb = vx for x controller test only
+        # v_fb = vy for y controller test only
+        # v_fb = 0  for yaw controler test only
+
+        omg_fb = k_psi_p * psi_error # gain times control again
+
+        self.linear_speed = v_fb
+        self.angular_speed = omg_fb
         
         # Step S.0 and S.1: Saturation: Saturate self.linear_speed and self.angular_speed
         # If needed you can use the max(x,y) and min(x,y) to compute the min and max between two values.
@@ -435,13 +466,13 @@ if __name__ == '__main__':
         # Uncomment only one line of code to execute:   
     
     # TASK1
-    #obj.record_traj("log_SecXX_LastName_FirstName.txt")      # Execute the record_traj  method to record            the turtlebot manual trajectory
+    #obj.record_traj("log_GSET_Robot.txt")      # Execute the record_traj  method to record            the turtlebot manual trajectory
     
     # TASK2
-    #obj.play_traj("log_SecXX_LastName_FirstName.txt", "log_plybck_SecXX_LastName_FirstName.txt")        # Execute the record_traj  method to play back         the turtlebot manual trajectory
+    #obj.play_traj("log_GSET_Robot.txt", "log_plybck_GSET_Robot.txt")        # Execute the record_traj  method to play back         the turtlebot manual trajectory
 
     # TASK3 and TASK 4
-    #obj.control_traj("log_SecXX_LastName_FirstName.txt", "log_ctrl_SecXX_LastName_FirstName.txt")
+    obj.control_traj("log_GSET_Robot.txt", "log_ctrl_GSET_Robot.txt")
     
     # TASK5
-    #obj.control_traj("trajectoryRU_SOL.txt", "log_ctrl_RU_SecXX_LastName_FirstName.txt")               # Execute the control_traj method to feed back control the turtlebot        trajectory    
+    #obj.control_traj("trajectoryRU_SOL.txt", "log_ctrl_RU_GSET_Robot.txt")               # Execute the control_traj method to feed back control the turtlebot        trajectory
