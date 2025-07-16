@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """───────────────────────────────────────────────────────────────────────
-                     ┬─┐┌─┐┌┐ ┌─┐┌┬┐  ┬  ┌─┐┌┐                           
+                     ┬─┐┌─┐┌┐ ┌─┐┌┬┐  ┬  ┌─┐┌┐                          
                      ├┬┘│ │├┴┐│ │ │   │  ├─┤├┴┐                          
                      ┴└─└─┘└─┘└─┘ ┴   ┴─┘┴ ┴└─┘                          
  ────────────────────────────────────────────────────────────────────────"""
@@ -21,7 +21,7 @@ import sys                      # Importing the sys module to access system-spec
 import math                     # Importing the math module for math computations
 import time                     # Importing the time module for time-related functions
 import rospy                    # Importing rospy, the client library for ROS in Python
-import queue
+from collections import deque
 #import threading                # Importing the threading module for multi-threading capabilities
 from datetime import datetime   # Importing the Twist message type from geometry_msgs
 #from sshkeyboard import listen_keyboard                                     # Importing the function listen_keyboard from the sshkeyboard module
@@ -40,18 +40,18 @@ class Turtlebot:
 
         self.x_r = 0.025  # Define your geometric parameters
         self.y_r = 0.025  # Define your geometric parameters
-        
+       
         self.k_x   = 1.0  # control proportional gain
         self.k_y   = 1.0  # control proportional gain
         self.k_yaw = 0.05 # control proportional gain
-        
+       
         self.k_vx  = 0.0
         self.k_vy  = 0.0
         self.k_omg = 0.0
 
         self.f_v = 1.0
         self.f_omg = 1.0
-        
+       
         self.linear_speed_max = 0.22
         self.angular_speed_max = 2.84
         """ -------- End of Controller Gains --------- """
@@ -67,14 +67,14 @@ class Turtlebot:
         self.vx_traj  = 0.0
         self.vy_traj  = 0.0
         self.omg_traj = 0.0
-        
+       
         # ROS Node Setup
         rospy.init_node('my_node')      # Initialize ROS node
         rospy.loginfo("Initializing...")    
         self.rate = None
         self.exit_requested = False     # Flag to indicate program termination
         self.debug_flag = False
-        
+       
         # Initializing variables to store linear and angular speeds
         self.linear_speed = 0.0
         self.angular_speed = 0.0
@@ -99,23 +99,23 @@ class Turtlebot:
         self.roll   = 0.0
         self.pitch  = 0.0
         self.yaw    = 0.0
-        self.omega  = 0.0 
+        self.omega  = 0.0
 
         # Create a Twist message to control the Turtlebot's linear and angular speeds
         self.msg = Twist()
 
         # Publish the Twist message to the '/cmd_vel' topic using ROS Publisher
         self.speed_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-      
+     
         # Flag to control subscription to the VICON node for PoseStamped and TwistStamped messages
         self.is_pose_subscribed = False
         self.is_twist_subscribed = False
         # Subscription to the VICON
         self.pose_subscriber = None
         self.twist_subscriber = None
-        
+       
         # # Flag to control subscription to the own twist
-        
+       
         self.is_own_imu_subscribed   = False
         self.is_own_twist_subscribed = False
         # Subscription to the own twist
@@ -126,9 +126,9 @@ class Turtlebot:
         self.imu_angular_velocity = (0.0, 0.0, 0.0)       # Initializing angular velocity as a tuple (wx, wy, wz)
 
         self.taps = 25 # number of samples for the integral
-        self.x_error_integral = queue.Queue(maxsize=self.taps-1)
-        self.y_error_integral = queue.Queue(maxsize=self.taps-1)
-        self.psi_error_integral = queue.Queue(maxsize=self.taps-1)
+        self.x_error_integral = deque(maxlen=6)
+        self.y_error_integral = deque(maxlen=6)
+        self.psi_error_integral = deque(maxlen=6)
 
         self.x_error = 0
         self.y_error = 0
@@ -139,7 +139,7 @@ class Turtlebot:
         if not self.is_own_twist_subscribed:
             self.own_twist_subscriber = rospy.Subscriber('/cmd_vel', Twist, self.own_twist_callback)
             self.is_own_twist_subscribed = True
-            
+           
     def own_twist_callback(self, twist_msg):
         # Callback function to handle Twist messages
         self.linear_speed  = twist_msg.linear.x
@@ -150,14 +150,14 @@ class Turtlebot:
         if not self.is_own_imu_subscribed:
             self.own_imu_subscriber = rospy.Subscriber('/imu', Imu, self.own_imu_callback)
             self.is_own_imu_subscribed = True
-            
+           
     def own_imu_callback(self, imu_msg):
         # Callback function to handle Twist messages
         self.imu_angular_velocity  = (imu_msg.angular_velocity.x,
                                       imu_msg.angular_velocity.y,
                                       imu_msg.angular_velocity.z)
                                  
-    def publish_speeds(self):       
+    def publish_speeds(self):      
         # Create a Twist message to control the Turtlebot's linear and angular speeds
         self.msg.linear.x  = self.linear_speed   # Set linear speed
         self.msg.angular.z = self.angular_speed  # Set angular speed
@@ -176,7 +176,7 @@ class Turtlebot:
                        f"{self.linear_velocity[0]:.4f}\t{self.linear_velocity[1]:.4f}\t" \
                        f"{math.sqrt(math.pow(self.linear_velocity[0], 2) + math.pow(self.linear_velocity[1], 2)):.4f}\t" \
                        f"{self.imu_angular_velocity[2]:.4f}\n"
-        else:   
+        else:  
             log_data = f"{current_time:.4f}\t{self.linear_speed:.4f}\t{self.angular_speed:.4f}\t" \
                        f"{self.position[0]:.4f}\t{self.position[1]:.4f}\t{self.position[2]:.4f}\t" \
                        f"{self.orientation[0]:.4f}\t{self.orientation[1]:.4f}\t{self.orientation[2]:.4f}\t{self.orientation[3]:.4f}\t" \
@@ -205,7 +205,7 @@ class Turtlebot:
             self.read_file_name = self.log_file_name
         else:
             self.read_file_name = read_file_name
-            
+           
         # Open the log file in read mode
         with open(self.read_file_name, 'r') as file:
             # Skip the first line (header) in the log file
@@ -229,7 +229,7 @@ class Turtlebot:
                 self.linear_speed  = 0.0
                 self.angular_speed = 0.0
                 self.exit_requested = True
-                
+               
     def update_traj(self):
         if self.log_lines:
             # Start updating speeds from the first entry
@@ -259,7 +259,7 @@ class Turtlebot:
                     self.vy_traj  = float(self.log_lines[self.current_idx][14])
                     self.omg_traj = float(self.log_lines[self.current_idx][18])                
                 self.current_idx += 1
-                
+               
             elif self.current_idx == len(self.log_lines) - 1:
                 self.linear_speed_traj  = 0.0
                 self.angular_speed_traj = 0.0
@@ -318,7 +318,7 @@ class Turtlebot:
         )
         # Update other attributes as needed
         (self.roll, self.pitch, self.yaw) = euler_from_quaternion (self.orientation)
-        
+       
 
     def twist_callback(self, data):
         # Callback function to handle TwistStamped messages
@@ -334,45 +334,44 @@ class Turtlebot:
         self.omega = 0.0  # Initializing yaw angle rate
 
     def controller(self):                          # CONTROL ALGORITHM - WORK HERE!!!!!!!
-        
+       
         # Sensor current position and orientation
         x_sensor = self.position[0]
         y_sensor = self.position[1]
         psi_sensor = self.yaw
-        
-        '''Controller'''        	
+       
+        '''Controller'''        
         # WRITE CONTROLLER HERE
 
         # Desired trajectory attributes - TUNABLE
-        x_d = 1
-        y_d = 0
-        psi_d = 0
+        x_d = self.x_traj
+        y_d = self.y_traj
 
         # Proportional gain values - TUNABLE
-        k_x_p = 0
-        k_y_p = 0
-        k_psi_p = 0
+        k_x_p = 1
+        k_y_p = 1
+        k_psi_p = 1.5
 
         # Integral gain values - TUNABLE
-        k_x_i = 0
-        k_y_i = 0
-        k_psi_i = 0
+        k_x_i = 0.25
+        k_y_i = 0.25
+        k_psi_i = 0.5
 
         # Derivative gain values - TUNABLE
-        k_x_d = 0
-        k_y_d = 0
-        k_psi_d = 0
+        k_x_d = 0.5
+        k_y_d = 0.5
+        k_psi_d = 0.75
 
         # Error calculation
         x_error_new = x_d - x_sensor
         y_error_new = y_d - y_sensor
 
         # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
-        self.x_error_integral.put(x_error_new * 0.01)
-        self.y_error_integral.put(y_error_new * 0.01)
+        self.x_error_integral.append(x_error_new * 0.01)
+        self.y_error_integral.append(y_error_new * 0.01)
 
-        x_error_integral_sum = sum(self.x_error_integral.queue)
-        y_error_integral_sum = sum(self.y_error_integral.queue)
+        x_error_integral_sum = sum(self.x_error_integral)
+        y_error_integral_sum = sum(self.y_error_integral)
 
         # derivative calculations
         x_error_derivative = (x_error_new - self.x_error) / 0.01
@@ -381,7 +380,6 @@ class Turtlebot:
         # updating global errors
         self.x_error = x_error_new
         self.y_error = y_error_new
-
 
         # Velocity components
         vx = k_x_p * self.x_error + k_x_i * x_error_integral_sum + k_x_d * x_error_derivative
@@ -392,20 +390,24 @@ class Turtlebot:
         # v_fb = vx for x controller test only
         # v_fb = vy for y controller test only
         # v_fb = 0 for yaw controler test only
-
+       
+        psi_d = math.atan2(vy,vx)
+        psi_error_integral_sum = 0
+        psi_error_derivative = 0
+       
         # If the robot is going at such a slow pace, we can just turn the robot to the desired yaw
         SLOW_SPEED_THRESHOLD = 0.01 # ALSO TUNABLE
-        if(abs(v_fb) < SLOW_SPEED_THRESHOLD):
-            psi_error_new = math.atan2(vy, vx) - psi_sensor
+        if abs(v_fb) < SLOW_SPEED_THRESHOLD:
+            psi_error_new = psi_d - psi_sensor
             psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
-            psi_error_integral_sum = sum(self.psi_error_integral.queue)
+            psi_error_integral_sum = sum(self.psi_error_integral)
             psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
             self.psi_error = psi_error_new
         else:
             psi_error_new = psi_d - psi_sensor
             psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
-            self.psi_error_integral.put(psi_error_new * 0.01)
-            psi_error_integral_sum = sum(self.psi_error_integral.queue)
+            self.psi_error_integral.append(psi_error_new * 0.01)
+            psi_error_integral_sum = sum(self.psi_error_integral)
             psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
             self.psi_error = psi_error_new
 
@@ -413,7 +415,7 @@ class Turtlebot:
 
         self.linear_speed = v_fb
         self.angular_speed = omg_fb
-        
+       
         # Step S.0 and S.1: Saturation: Saturate self.linear_speed and self.angular_speed
         # If needed you can use the max(x,y) and min(x,y) to compute the min and max between two values.
         linear_speed_max = +self.linear_speed_max
@@ -423,7 +425,7 @@ class Turtlebot:
         if self.current_idx >= len(self.log_lines):
             self.linear_speed = 0
             self.angular_speed = 0  
-        
+       
         self.linear_speed = max(-self.linear_speed_max, min(self.linear_speed, self.linear_speed_max))
         self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
 
@@ -431,9 +433,9 @@ class Turtlebot:
         if((self.linear_speed == -self.linear_speed_max) or (self.linear_speed == self.linear_speed_max) or (self.angular_speed == -self.angular_speed_max) or (self.angular_speed == self.angular_speed_max)):
             vx = k_x_p * self.x_error + k_x_d * x_error_derivative
             vy = k_y_p * self.y_error + k_y_d * y_error_derivative
-            self.x_error_integral.put(0)
-            self.y_error_integral.put(0)
-            self.psi_error_integral.put(0)
+            self.x_error_integral[-1] = 0
+            self.y_error_integral[-1] = 0
+            self.psi_error_integral[-1] = 0
             v_fb = math.hypot(vx, vy)
             omg_fb = k_psi_p * self.psi_error + k_psi_d * psi_error_derivative
             self.linear_speed = v_fb
@@ -445,15 +447,15 @@ class Turtlebot:
             self.angular_speed = max(-self.angular_speed_max, min(self.angular_speed, self.angular_speed_max))
         else:
             # Integral calculation (frequency = 100 Hz therefore dt = 0.01s)
-            self.x_error_integral.put(self.x_error * 0.01)
-            self.y_error_integral.put(self.y_error * 0.01)
-            self.psi_error_integral.put(self.psi_error * 0.01)
+            self.x_error_integral.append(self.x_error * 0.01)
+            self.y_error_integral.append(self.y_error * 0.01)
+            self.psi_error_integral.append(self.psi_error * 0.01)
 
 
     def cleanup(self):      
         # Shutdown ROS node
         rospy.signal_shutdown("Cleanup and exit")
-        
+       
         # Wait for rospy to finish shutting down
         while not rospy.is_shutdown():
             pass
@@ -479,10 +481,10 @@ class Turtlebot:
             self.exit_requested = True      # Set exit flag to True
             self.write_log_data_to_file(log_file_name)
             self.cleanup()
-            
+           
     def play_traj(self, read_file_name=None, log_file_name=None):      
         # Open the log file in read mode
-        self.read_from_file(read_file_name) 
+        self.read_from_file(read_file_name)
         # Subscribe to the topics
         self.subscribe_own_twist()
         self.subscribe_own_imu()
@@ -504,10 +506,10 @@ class Turtlebot:
             self.exit_requested = True      # Set exit flag to True
             self.write_log_data_to_file(log_file_name)
             self.cleanup()
-                
+               
     def control_traj(self, read_file_name=None, log_file_name=None):  
         # Open the log file in read mode
-        self.read_from_file(read_file_name) 
+        self.read_from_file(read_file_name)
         # Subscribe to the topics
         self.subscribe_own_twist()
         self.subscribe_own_imu()
@@ -535,16 +537,16 @@ class Turtlebot:
 if __name__ == '__main__':
     obj = Turtlebot()   # Create an instance of the Turtlebot class
 
-        # Uncomment only one line of code to execute:   
-    
+        # Uncomment only one line of code to execute:  
+   
     # TASK1
     #obj.record_traj("log_SecXX_LastName_FirstName.txt")      # Execute the record_traj  method to record            the turtlebot manual trajectory
-    
+   
     # TASK2
     #obj.play_traj("log_SecXX_LastName_FirstName.txt", "log_plybck_SecXX_LastName_FirstName.txt")        # Execute the record_traj  method to play back         the turtlebot manual trajectory
 
     # TASK3 and TASK 4
-    #obj.control_traj("log_SecXX_LastName_FirstName.txt", "log_ctrl_SecXX_LastName_FirstName.txt")
-    
+    obj.control_traj("log_GSET_Robot.txt", "log_ctrl_GSET_Robot_PID.txt")
+   
     # TASK5
-    #obj.control_traj("trajectoryRU_SOL.txt", "log_ctrl_RU_SecXX_LastName_FirstName.txt")               # Execute the control_traj method to feed back control the turtlebot        trajectory    
+    #obj.control_traj("trajectoryRU_SOL.txt", "log_ctrl_RU_SecXX_LastName_FirstName.txt")               # Execute the control_traj method to feed back control the turtlebot        trajectory
