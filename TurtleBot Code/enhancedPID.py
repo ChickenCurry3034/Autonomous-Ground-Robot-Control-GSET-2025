@@ -397,19 +397,13 @@ class Turtlebot:
        
         # If the robot is going at such a slow pace, we can just turn the robot to the desired yaw
         SLOW_SPEED_THRESHOLD = 0.01 # ALSO TUNABLE
-        if abs(v_fb) < SLOW_SPEED_THRESHOLD:
-            psi_error_new = psi_d - psi_sensor
-            psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
-            psi_error_integral_sum = sum(self.psi_error_integral)
-            psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
-            self.psi_error = psi_error_new
-        else:
-            psi_error_new = psi_d - psi_sensor
-            psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
+        psi_error_new = psi_d - psi_sensor
+        psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
+        if abs(v_fb) >= SLOW_SPEED_THRESHOLD:
             self.psi_error_integral.append(psi_error_new * 0.01)
-            psi_error_integral_sum = sum(self.psi_error_integral)
-            psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
-            self.psi_error = psi_error_new
+        psi_error_integral_sum = sum(self.psi_error_integral)
+        psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
+        self.psi_error = psi_error_new
 
         omg_fb = k_psi_p * self.psi_error + k_psi_i * psi_error_integral_sum + k_psi_d * psi_error_derivative # gain times control again
 
