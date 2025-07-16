@@ -396,9 +396,12 @@ class Turtlebot:
         psi_error_derivative = 0
        
         # If the robot is going at such a slow pace, we can just turn the robot to the desired yaw
-        SLOW_SPEED_THRESHOLD = 0.01 # ALSO TUNABLE
+        SLOW_SPEED_THRESHOLD = 0.005 # ALSO TUNABLE
         psi_error_new = psi_d - psi_sensor
-        psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
+        #psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
+        if abs(psi_error_new) >= math.pi:
+            psi_d = psi_d - math.copysign(1,psi_error_new)*2*math.pi
+            psi_error_new = psi_d - psi_sensor
         if abs(v_fb) >= SLOW_SPEED_THRESHOLD:
             self.psi_error_integral.append(psi_error_new * 0.01)
         psi_error_integral_sum = sum(self.psi_error_integral)
