@@ -510,45 +510,47 @@ linear_distance = linear_distance + abs(v) * 0.01;
 angular_distance = angular_distance + abs(omg) * 0.01;
 end
 
-function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
-%PLOTTRAJECTORY Plot some outputs!
+function plotOutputs(obj, Time, data, xr, yr, yawr)
+%PLOTUTPUTS Plot some outputs!
     fig = figure;
 
-    % yaw plot
-    ax(1) = subplot(3,1,1);
-    hold(ax(1), "on"), grid(ax(1), "on")
-    xlabel(ax(1), 'Time (s)')
-    ylabel(ax(1), 'Yaw (rad)')
-    plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
-    plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
-    legend(ax(1), 'Location', 'best')
-    ylim(ax(1), [-3.5, 3.5]); % Apply the fixed Y-axis limits
+    % Subplot for X error
+    ax1 = subplot(4,1,1);
+    hold(ax1, "on"), grid(ax1, "on")
+    xlabel(ax1, 'Time (s)')
+    ylabel(ax1, 'ex (m)')
+    plot(ax1, Time, xr-data(:,3), 'k')
 
-    % x plot
-    ax(2) = subplot(3,1,2);
-    hold(ax(2), "on"), grid(ax(2), "on")
-    xlabel(ax(2), 'Time (s)')
-    ylabel(ax(2), 'X Position (m)')
-    plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
-    plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
-    legend(ax(2), 'Location', 'best')
-    ylim(ax(2), [-1, 9]);
+    % Subplot for Y error
+    ax2 = subplot(4,1,2);
+    hold(ax2, "on"), grid(ax2, "on")
+    xlabel(ax2, 'Time (s)')
+    ylabel(ax2, 'ey (m)')
+    plot(ax2, Time, yr-data(:,4), 'k')
 
-    % y plot
-    ax(3) = subplot(3,1,3);
-    hold(ax(3), "on"), grid(ax(3), "on")
-    xlabel(ax(3), 'Time (s)')
-    ylabel(ax(3), 'Y Position (m)')
-    plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
-    plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
-    legend(ax(3), 'Location', 'best')
-    ylim(ax(3), [-1, 9]);
+    % Subplot for Linear Velocity
+    ax3 = subplot(4,1,3);
+    hold(ax3, "on"), grid(ax3, "on")
+    xlabel(ax3, 'Time (s)')
+    ylabel(ax3, 'v (m/s)')
+    plot(ax3, Time, data(:,1), 'k') % Command linear speed
+    plot(ax3, Time, data(:,8), '--r') % Real linear speed
+    yline(ax3, obj.linear_speed_sat,'--g', 'Saturation Limit')
+    yline(ax3, -obj.linear_speed_sat,'--g')
+    legend(ax3, 'cmd','real','sat', 'Location', 'best')
 
-    sgtitle('Robot Trajectory')
-
-    % Link the x-axes of all subplots
-    linkaxes(ax, 'x');
+    % Subplot for Angular Velocity
+    ax4 = subplot(4,1,4);
+    hold(ax4, "on"), grid(ax4, "on")
+    xlabel(ax4, 'Time (s)')
+    ylabel(ax4, 'wz (rad/s)')
+    plot(ax4, Time, data(:,2), 'k') % Command angular speed
+    plot(ax4, Time, data(:,9), '--r') % Real angular speed
+    yline(ax4, obj.angular_speed_sat,'--g', 'Saturation Limit')
+    yline(ax4, -obj.angular_speed_sat,'--g')
+    legend(ax4,'cmd','real','sat', 'Location', 'best')
 end
+
 
 function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
 %PLOTTRAJECTORY Plot some outputs!
