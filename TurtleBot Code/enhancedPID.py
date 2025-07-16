@@ -126,13 +126,15 @@ class Turtlebot:
         self.imu_angular_velocity = (0.0, 0.0, 0.0)       # Initializing angular velocity as a tuple (wx, wy, wz)
 
         self.taps = 25 # number of samples for the integral
-        self.x_error_integral = deque(maxlen=6)
-        self.y_error_integral = deque(maxlen=6)
-        self.psi_error_integral = deque(maxlen=6)
+        self.x_error_integral = deque(maxlen=self.taps)
+        self.y_error_integral = deque(maxlen=self.taps)
+        self.psi_error_integral = deque(maxlen=self.taps)
 
         self.x_error = 0
         self.y_error = 0
         self.psi_error = 0
+
+        self.first_turn = True
 
     def subscribe_own_twist(self):
         # Subscribe to the TwistStamped topic if not already subscribed
@@ -350,17 +352,17 @@ class Turtlebot:
         # Proportional gain values - TUNABLE
         k_x_p = 1
         k_y_p = 1
-        k_psi_p = 1.5
+        k_psi_p = 3
 
         # Integral gain values - TUNABLE
-        k_x_i = 0.25
-        k_y_i = 0.25
-        k_psi_i = 0.5
+        k_x_i = 0.1
+        k_y_i = 0.1
+        k_psi_i = 0.2
 
         # Derivative gain values - TUNABLE
-        k_x_d = 0.5
-        k_y_d = 0.5
-        k_psi_d = 0.75
+        k_x_d = 0.25
+        k_y_d = 0.25
+        k_psi_d = 0.33
 
         # Error calculation
         x_error_new = x_d - x_sensor
@@ -390,19 +392,25 @@ class Turtlebot:
         # v_fb = vx for x controller test only
         # v_fb = vy for y controller test only
         # v_fb = 0 for yaw controler test only
-       
-        psi_d = math.atan2(vy,vx)
+        
+        # If the robot is going at such a slow pace, we can just turn the robot to the desired yaw
+        SLOW_SPEED_THRESHOLD = 0.01 # ALSO TUNABLE
+        
+        psi_d = math.atan2(vy, vx)
+        if(v_fb < SLOW_SPEED_THRESHOLD and not(self.first_turn)):
+            psi_d = self.yaw_traj
         psi_error_integral_sum = 0
         psi_error_derivative = 0
-       
-        # If the robot is going at such a slow pace, we can just turn the robot to the desired yaw
-        SLOW_SPEED_THRESHOLD = 0.005 # ALSO TUNABLE
         psi_error_new = psi_d - psi_sensor
+
+        if(v_fb > SLOW_SPEED_THRESHOLD and self.first_turn):
+            self.first_turn = False
+        
         #psi_error_new = math.atan2(math.sin(psi_error_new), math.cos(psi_error_new))
         if abs(psi_error_new) >= math.pi:
             psi_d = psi_d - math.copysign(1,psi_error_new)*2*math.pi
             psi_error_new = psi_d - psi_sensor
-        if abs(v_fb) >= SLOW_SPEED_THRESHOLD:
+        if abs(v_fb) >= SLOW_SPEED_THRESHOLD and not(self.first_turn):
             self.psi_error_integral.append(psi_error_new * 0.01)
         psi_error_integral_sum = sum(self.psi_error_integral)
         psi_error_derivative = (psi_error_new - self.psi_error) / 0.01
@@ -537,13 +545,13 @@ if __name__ == '__main__':
         # Uncomment only one line of code to execute:  
    
     # TASK1
-    #obj.record_traj("log_SecXX_LastName_FirstName.txt")      # Execute the record_traj  method to record            the turtlebot manual trajectory
+    #obj.record_traj("log_GSET_RobotTraj2.txt")      # Execute the record_traj  method to record            the turtlebot manual trajectory
    
     # TASK2
-    #obj.play_traj("log_SecXX_LastName_FirstName.txt", "log_plybck_SecXX_LastName_FirstName.txt")        # Execute the record_traj  method to play back         the turtlebot manual trajectory
+    #obj.play_traj("log_GSET_RobotTraj2.txt", "log_plybck_GSET_RobotTraj2.txt")        # Execute the record_traj  method to play back         the turtlebot manual trajectory
 
     # TASK3 and TASK 4
-    obj.control_traj("log_GSET_Robot.txt", "log_ctrl_GSET_Robot_PID.txt")
+    obj.control_traj("log_GSET_RobotTraj2.txt", "log_ctrl_GSET_RobotTraj2_PID.txt")
    
     # TASK5
     #obj.control_traj("trajectoryRU_SOL.txt", "log_ctrl_RU_SecXX_LastName_FirstName.txt")               # Execute the control_traj method to feed back control the turtlebot        trajectory
