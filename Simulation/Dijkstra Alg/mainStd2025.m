@@ -174,8 +174,8 @@ connections_map('X') = {'V', 'W', 'Y'};
 connections_map('Y') = {'W', 'X', 'Z'};
 connections_map('Z') = {'Y'};
 
-start_node = 'A';
-end_node = 'Z';
+start_node = 'B';
+end_node = 'V';
 tic
 best_path = dijkstra(nodes_map, connections_map, start_node, end_node);
 fprintf('\nTime to generate most efficient path: %d.\n', toc);
@@ -520,7 +520,7 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     % Link the x-axes of all subplots
     linkaxes(ax, 'x');
 
-    sgtitle('Dijkstra's Algorithm', 'FontSize', 20)
+    sgtitle('Dijkstra Algorithm', 'FontSize', 20)
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)
