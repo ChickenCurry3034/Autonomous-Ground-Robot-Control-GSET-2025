@@ -105,7 +105,7 @@ i = 0;                  % loop index
 x_accept = 0.01;
 y_accept = 0.01;
 yaw_accept = 0.11;
-max_sim_steps = 3000;
+max_sim_steps = 1000;
 
 while not(stopSimulation)
     i = i + 1;
@@ -137,10 +137,10 @@ while not(stopSimulation)
     y_error_sum = y_error_sum + abs(current_y_error * 0.01);
     yaw_error_sum = yaw_error_sum + abs(current_yaw_error * 0.01);
 
-    if current_x_error <= x_accept && current_y_error <= y_accept && current_yaw_error <= yaw_accept
-        stopSimulation = true;
-        fprintf('Simulation point stopped: Target reached at time step %d.\n', i);
-    end
+    %if current_x_error <= x_accept && current_y_error <= y_accept && current_yaw_error <= yaw_accept
+    %    stopSimulation = true;
+    %    fprintf('Simulation point stopped: Target reached at time step %d.\n', i);
+    %end
 
     % Safety net: Stop if maximum simulation steps reached
     if i >= max_sim_steps
@@ -150,9 +150,9 @@ while not(stopSimulation)
 end
 %% Section 3: Plot some results!
 ax_robot_traj = plotTrajectory(Time(1:i), data(1:i,3), data(1:i,4), data(1:i,5), xd(1:i), yd(1:i), yawd(1:i));
-title(ax_robot_traj(1), 'Robot Trajectory Yaw'); 
-title(ax_robot_traj(2), 'Robot Trajectory X'); 
-title(ax_robot_traj(3), 'Robot Trajectory Y'); 
+title(ax_robot_traj(1), 'Robot Trajectory Yaw', 'FontSize', 14); 
+title(ax_robot_traj(2), 'Robot Trajectory X','FontSize', 14); 
+title(ax_robot_traj(3), 'Robot Trajectory Y','FontSize', 14); 
 
 plotOutputs(obj, Time(1:i), data(1:i,:), xd(1:i), yd(1:i), yawd(1:i))
 writeTrajectory(Time(1:i), xd(1:i), yd(1:i), yawd(1:i))
@@ -298,8 +298,8 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     % yaw plot
     ax(1) = subplot(3,1,1);
     hold(ax(1), "on"), grid(ax(1), "on")
-    xlabel(ax(1), 'Time (s)')
-    ylabel(ax(1), 'Yaw (rad)')
+    xlabel(ax(1), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(1), 'Yaw (rad)', 'FontSize', 14)
     plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
     plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
     legend(ax(1), 'Location', 'best')
@@ -308,27 +308,27 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     % x plot
     ax(2) = subplot(3,1,2);
     hold(ax(2), "on"), grid(ax(2), "on")
-    xlabel(ax(2), 'Time (s)')
-    ylabel(ax(2), 'X Position (m)')
+    xlabel(ax(2), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(2), 'X Position (m)', 'FontSize', 14)
     plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
     plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
     legend(ax(2), 'Location', 'best')
-    ylim(ax(2), [-1.5, 1.5]);
+    ylim(ax(2), [-3, 3]);
 
     % y plot
     ax(3) = subplot(3,1,3);
     hold(ax(3), "on"), grid(ax(3), "on")
-    xlabel(ax(3), 'Time (s)')
-    ylabel(ax(3), 'Y Position (m)')
+    xlabel(ax(3), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(3), 'Y Position (m)', 'FontSize', 14)
     plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
-    ylim(ax(3), [-1.5, 1.5]);
-
-    sgtitle('Robot Trajectory')
+    ylim(ax(3), [-3, 3]);
 
     % Link the x-axes of all subplots
     linkaxes(ax, 'x');
+
+    sgtitle('Enhanced PID', 'FontSize', 20)
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)

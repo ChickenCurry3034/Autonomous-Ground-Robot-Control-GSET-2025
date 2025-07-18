@@ -269,9 +269,9 @@ yawd = simYawd';
 
 %% Section 3: Plot some results!
 ax_robot_traj = plotTrajectory(Time, data(:,3), data(:,4), data(:,5), xd, yd, yawd);
-title(ax_robot_traj(1), 'Robot Trajectory Yaw'); % Title for the first subplot (yaw)
-title(ax_robot_traj(2), 'Robot Trajectory X'); % Title for the second subplot (x)
-title(ax_robot_traj(3), 'Robot Trajectory Y'); % Title for the third subplot (y)
+title(ax_robot_traj(1), 'Robot Trajectory Yaw', 'FontSize', 14); % Title for the first subplot (yaw)
+title(ax_robot_traj(2), 'Robot Trajectory X', 'FontSize', 14); % Title for the second subplot (x)
+title(ax_robot_traj(3), 'Robot Trajectory Y', 'FontSize', 14); % Title for the third subplot (y)
 
 plotOutputs(obj, Time, data, xd, yd, yawd)
 writeTrajectory(Time, xd, yd, yawd)
@@ -510,46 +510,6 @@ linear_distance = linear_distance + abs(v) * 0.01;
 angular_distance = angular_distance + abs(omg) * 0.01;
 end
 
-function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
-%PLOTTRAJECTORY Plot some outputs!
-    fig = figure;
-
-    % yaw plot
-    ax(1) = subplot(3,1,1);
-    hold(ax(1), "on"), grid(ax(1), "on")
-    xlabel(ax(1), 'Time (s)')
-    ylabel(ax(1), 'Yaw (rad)')
-    plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
-    plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
-    legend(ax(1), 'Location', 'best')
-    ylim(ax(1), [-3.5, 3.5]); % Apply the fixed Y-axis limits
-
-    % x plot
-    ax(2) = subplot(3,1,2);
-    hold(ax(2), "on"), grid(ax(2), "on")
-    xlabel(ax(2), 'Time (s)')
-    ylabel(ax(2), 'X Position (m)')
-    plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
-    plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
-    legend(ax(2), 'Location', 'best')
-    ylim(ax(2), [-1, 9]);
-
-    % y plot
-    ax(3) = subplot(3,1,3);
-    hold(ax(3), "on"), grid(ax(3), "on")
-    xlabel(ax(3), 'Time (s)')
-    ylabel(ax(3), 'Y Position (m)')
-    plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
-    plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
-    legend(ax(3), 'Location', 'best')
-    ylim(ax(3), [-1, 9]);
-
-    sgtitle('Robot Trajectory')
-
-    % Link the x-axes of all subplots
-    linkaxes(ax, 'x');
-end
-
 function plotOutputs(obj, Time, data, xr, yr, yawr)
 %PLOTUTPUTS Plot some outputs!
     fig = figure;
@@ -589,6 +549,47 @@ function plotOutputs(obj, Time, data, xr, yr, yawr)
     yline(ax4, obj.angular_speed_sat,'--g', 'Saturation Limit')
     yline(ax4, -obj.angular_speed_sat,'--g')
     legend(ax4,'cmd','real','sat', 'Location', 'best')
+end
+
+
+function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
+%PLOTTRAJECTORY Plot some outputs!
+    fig = figure;
+
+    % yaw plot
+    ax(1) = subplot(3,1,1);
+    hold(ax(1), "on"), grid(ax(1), "on")
+    xlabel(ax(1), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(1), 'Yaw (rad)', 'FontSize', 14)
+    plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
+    plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
+    legend(ax(1), 'Location', 'best')
+    ylim(ax(1), [-3.5, 3.5]); % Apply the fixed Y-axis limits
+
+    % x plot
+    ax(2) = subplot(3,1,2);
+    hold(ax(2), "on"), grid(ax(2), "on")
+    xlabel(ax(2), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(2), 'X Position (m)', 'FontSize', 14)
+    plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
+    plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
+    legend(ax(2), 'Location', 'best')
+    ylim(ax(2), [-1, 10]);
+
+    % y plot
+    ax(3) = subplot(3,1,3);
+    hold(ax(3), "on"), grid(ax(3), "on")
+    xlabel(ax(3), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(3), 'Y Position (m)', 'FontSize', 14)
+    plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
+    plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
+    legend(ax(3), 'Location', 'best')
+    ylim(ax(3), [-1, 10]);
+
+    % Link the x-axes of all subplots
+    linkaxes(ax, 'x');
+
+    sgtitle('A* Algorithm', 'FontSize', 20)
 end
 
 %% Write files

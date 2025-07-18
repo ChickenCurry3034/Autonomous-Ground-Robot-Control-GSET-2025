@@ -70,13 +70,13 @@ angular_speed_sat = obj.angular_speed_sat;
 % dt = 0.01s because frequency is 100 Hz
 %% Section 1: Reference trajectory generation
 % Create a time column vector, starting from 0s, up to 10s, in TS steps.
-max_sim_steps = 3000;
+max_sim_steps = 1000;
 Time = [0:obj.TS:max_sim_steps/100]';
 % Create x and y reference position column vectors, of the same size as the time vector.
 % This is an example of a step function, a good start.You can get creative!
-xd = 1 * ones(size(Time));            % x position
-yd = 0 * ones(size(Time));         % y position
-yawd = (pi/4) * ones(size(Time));
+xd = -0.75 * ones(size(Time));            % x position
+yd = 0.5 * ones(size(Time));         % y position
+yawd = (pi/2) * ones(size(Time));
 
 % Or you can use a fucntion, just like this!
 % [xr, yr] = trajectory(Time);    % Uncomment me to use!
@@ -150,9 +150,9 @@ while not(stopSimulation)
 end
 %% Section 3: Plot some results!
 ax_robot_traj = plotTrajectory(Time(1:i), data(1:i,3), data(1:i,4), data(1:i,5), xd(1:i), yd(1:i), yawd(1:i));
-title(ax_robot_traj(1), 'Robot Trajectory Yaw'); 
-title(ax_robot_traj(2), 'Robot Trajectory X'); 
-title(ax_robot_traj(3), 'Robot Trajectory Y'); 
+title(ax_robot_traj(1), 'Robot Trajectory Yaw', 'FontSize', 14); 
+title(ax_robot_traj(2), 'Robot Trajectory X', 'FontSize', 14); 
+title(ax_robot_traj(3), 'Robot Trajectory Y', 'FontSize', 14); 
 
 plotOutputs(obj, Time(1:i), data(1:i,:), xd(1:i), yd(1:i), yawd(1:i))
 writeTrajectory(Time(1:i), xd(1:i), yd(1:i), yawd(1:i))
@@ -241,8 +241,8 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     % yaw plot
     ax(1) = subplot(3,1,1);
     hold(ax(1), "on"), grid(ax(1), "on")
-    xlabel(ax(1), 'Time (s)')
-    ylabel(ax(1), 'Yaw (rad)')
+    xlabel(ax(1), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(1), 'Yaw (rad)', 'FontSize', 14)
     plot(ax(1), Time, yawr, 'k', 'DisplayName', 'Robot Yaw')
     plot(ax(1), Time, yawd, 'b--', 'DisplayName', 'Target Yaw');
     legend(ax(1), 'Location', 'best')
@@ -251,27 +251,27 @@ function ax = plotTrajectory(Time, xr, yr, yawr, xd, yd, yawd)
     % x plot
     ax(2) = subplot(3,1,2);
     hold(ax(2), "on"), grid(ax(2), "on")
-    xlabel(ax(2), 'Time (s)')
-    ylabel(ax(2), 'X Position (m)')
+    xlabel(ax(2), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(2), 'X Position (m)', 'FontSize', 14)
     plot(ax(2), Time, xr, 'k', 'DisplayName', 'Robot X Position')
     plot(ax(2), Time, xd, 'b--', 'DisplayName', 'Target X Position');
     legend(ax(2), 'Location', 'best')
-    ylim(ax(2), [-1.5, 1.5]);
+    ylim(ax(2), [-3, 3]);
 
     % y plot
     ax(3) = subplot(3,1,3);
     hold(ax(3), "on"), grid(ax(3), "on")
-    xlabel(ax(3), 'Time (s)')
-    ylabel(ax(3), 'Y Position (m)')
+    xlabel(ax(3), 'Time (s)', 'FontSize', 14)
+    ylabel(ax(3), 'Y Position (m)', 'FontSize', 14)
     plot(ax(3), Time, yr, 'k', 'DisplayName', 'Robot Y Position')
     plot(ax(3), Time, yd, 'b--', 'DisplayName', 'Target Y Position');
     legend(ax(3), 'Location', 'best')
-    ylim(ax(3), [-1.5, 1.5]);
-
-    sgtitle('Robot Trajectory')
+    ylim(ax(3), [-3, 3]);
 
     % Link the x-axes of all subplots
     linkaxes(ax, 'x');
+
+    sgtitle('Base PID', 'FontSize', 20)
 end
 
 function plotOutputs(obj, Time, data, xr, yr, yawr)
@@ -281,22 +281,22 @@ function plotOutputs(obj, Time, data, xr, yr, yawr)
     % Subplot for X error
     ax1 = subplot(4,1,1);
     hold(ax1, "on"), grid(ax1, "on")
-    xlabel(ax1, 'Time (s)')
-    ylabel(ax1, 'ex (m)')
+    xlabel(ax1, 'Time (s)', 'FontSize', 14)
+    ylabel(ax1, 'ex (m)', 'FontSize', 14)
     plot(ax1, Time, xr-data(:,3), 'k')
 
     % Subplot for Y error
     ax2 = subplot(4,1,2);
     hold(ax2, "on"), grid(ax2, "on")
-    xlabel(ax2, 'Time (s)')
-    ylabel(ax2, 'ey (m)')
+    xlabel(ax2, 'Time (s)', 'FontSize', 14)
+    ylabel(ax2, 'ey (m)', 'FontSize', 14)
     plot(ax2, Time, yr-data(:,4), 'k')
 
     % Subplot for Linear Velocity
     ax3 = subplot(4,1,3);
     hold(ax3, "on"), grid(ax3, "on")
-    xlabel(ax3, 'Time (s)')
-    ylabel(ax3, 'v (m/s)')
+    xlabel(ax3, 'Time (s)', 'FontSize', 14)
+    ylabel(ax3, 'v (m/s)', 'FontSize', 14)
     plot(ax3, Time, data(:,1), 'k') % Command linear speed
     plot(ax3, Time, data(:,8), '--r') % Real linear speed
     yline(ax3, obj.linear_speed_sat,'--g', 'Saturation Limit')
