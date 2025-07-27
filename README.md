@@ -3,9 +3,15 @@ This project offers a deep analysis of PID controls for differential drive robot
 
 ## Installation
 
+
 ## Setup
+
 
 ## Experimentation
 
+
 ## Authors
-This project was developed by Aarush Mane, Hannah Truitt, Rylan Chintada, Varun Akella, and Maahishee Patel for the New Jersey Governor's School of Engineering & Technology. The project was advised by Shreya Srikanth as their project mentor and Daniel Baker as their Residential Teaching Assistant (RTA).
+This project was developed by Aarush Mane, Hannah Truitt, Rylan Chintada, Varun Akella, and Maahishee Patel for the New Jersey Governor's School of Engineering & Technology. The project was advised by Shreya Srikanth as their project mentor and Daniel Baker as their Residential Teaching Assistant (RTA). 
+
+## Paper Reference
+The corresponding research paper can be accessed through the following link: https://drive.google.com/file/d/1pk8C5_hpkfgGiQvAD37CN6ly7VYBQcyL/view?usp=sharing.
