@@ -352,7 +352,7 @@ class Turtlebot:
         # Proportional gain values - TUNABLE
         k_x_p = 1
         k_y_p = 1
-        k_psi_p = 3
+        k_psi_p = 0.2
 
         # Integral gain values - TUNABLE
         k_x_i = 0.1
@@ -360,9 +360,9 @@ class Turtlebot:
         k_psi_i = 0.2
 
         # Derivative gain values - TUNABLE
-        k_x_d = 0.25
-        k_y_d = 0.25
-        k_psi_d = 0.33
+        k_x_d = 0.2
+        k_y_d = 0.2
+        k_psi_d = 0.4
 
         # Error calculation
         x_error_new = x_d - x_sensor
