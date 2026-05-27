@@ -245,7 +245,7 @@ This project was developed by **Aarush Mane**, **Hannah Truitt**, **Rylan Chinta
 ## Publications
 
 ### Peer-Reviewed Conference Paper
-This research was presented and published at the **2025 MIT IEEE Undergraduate Robotics Technology Challenge (URTC)**:
+This research was presented and published at the **2025 MIT IEEE Undergraduate Research Technology Conference (URTC)**:
 
 - **IEEE Xplore Publication**: [PID Control Optimization and Trajectory Tracking for Autonomous Ground Robots](https://ieeexplore.ieee.org/document/11533106)
 
