@@ -38,14 +38,14 @@ Before beginning, ensure you have the following installed on your system:
    cd "Autonomous Ground Robot Control"
    ```
 
-2. **Navigate to the Simulation folder**:
+2. **Navigate to the MATLAB Workspace folder**:
    ```bash
-   cd Simulation
+   cd "MATLAB Workspace"
    ```
 
 3. **Open MATLAB** and add the simulation directories to your path:
    - In MATLAB, go to `Home` → `Set Path`
-   - Add all subdirectories under `Simulation/` (A-star Alg, Basic PID, Dijkstra Alg, Enhanced PID)
+   - Add all subdirectories under `MATLAB Workspace/` (A-star Alg, Basic PID, Dijkstra Alg, Enhanced PID)
    - Click "Save"
 
 4. **Verify installation** by opening one of the `mainStd2025.m` files—it should display path and trajectory data without errors.
@@ -73,7 +73,7 @@ Before beginning, ensure you have the following installed on your system:
 
 4. **Copy the TurtleBot3 source files**:
    - Copy the contents of the `Gazebo Workspace/src/` directory into `~/catkin_ws/src/`
-   - Copy the Python control scripts from `TurtleBot Code/` to your workspace
+   - Copy the Python control scripts from `TurtleBot Path Tracking Commands/` to your workspace
 
 5. **Build your workspace**:
    ```bash
@@ -93,7 +93,7 @@ Before beginning, ensure you have the following installed on your system:
 
 ### MATLAB Simulation Setup
 
-Each simulation variant is contained in its own directory and operates independently. The directory structure is as follows:
+Each simulation variant is contained in its own directory within the `MATLAB Workspace/` and operates independently. The directory structure is as follows:
 
 - **Basic PID**: Traditional PID control without enhancements
 - **Enhanced PID**: Improved PID with gain optimization
@@ -134,7 +134,7 @@ Each simulation variant is contained in its own directory and operates independe
    If this returns a list of topics, your connection is successful.
 
 4. **Select the control algorithm**:
-   - Navigate to the `TurtleBot Code/` directory
+   - Navigate to the `TurtleBot Path Tracking Commands/` directory
    - Choose one of the implemented control strategies:
      - `enhancedPID.py`: Enhanced PID controller
      - `enhancedPD.py`: Enhanced PD (derivative only) controller
@@ -214,12 +214,12 @@ To compare algorithm performance:
 
 ```
 Autonomous Ground Robot Control/
-├── Simulation/                 # MATLAB-based simulations
+├── MATLAB Workspace/           # MATLAB-based simulations
 │   ├── A-star Alg/            # A* pathfinding with PID control
 │   ├── Basic PID/             # Standard PID implementation
 │   ├── Dijkstra Alg/          # Dijkstra pathfinding with PID control
 │   └── Enhanced PID/          # Optimized PID parameters
-├── TurtleBot Code/             # Python implementations for real robot
+├── TurtleBot Path Tracking Commands/  # Python implementations for real robot
 │   ├── enhancedPID.py         # Enhanced PID controller
 │   ├── enhancedPD.py          # Enhanced PD controller
 │   └── enhancedP.py           # Proportional-only controller
